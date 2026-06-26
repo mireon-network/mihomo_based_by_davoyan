@@ -44,9 +44,7 @@ jobs:
 
       - name: Convert .yaml to .mrs
         run: |
-          find rules -type f -name "*.yaml" | while read file; do
-            mihomo convert-ruleset domain yaml "$file" "${file%.yaml}.mrs"
-          done
+          mihomo convert-ruleset domain yaml rules/category-ru.yaml rules/category-ru.mrs
 
       - name: Commit and push generated files
         env:
@@ -54,7 +52,7 @@ jobs:
         run: |
           git config user.name "Rule Set RU Domains List Generator"
           git config user.email "noreply@myrepo.com"
-          git add rules/*
+          git add rules/category-ru.*
           git commit -m "Update domains lists" || echo "No changes"
           git pull --rebase
           git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git

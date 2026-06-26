@@ -1,5 +1,4 @@
 import ipaddress
-import json
 import csv
 import maxminddb
 from pathlib import Path
@@ -488,49 +487,7 @@ def main() -> None:
     all_nets = [*map(str, v4), *map(str, v6)]
     
     listsdir = base / "lists"
-    
-    # txt lst
-    (listsdir / "ips-for-ru.lst").write_text("\n".join(all_nets) + ("\n" if all_nets else ""), encoding="utf-8")
-    (listsdir / "ips-for-ru.txt").write_text("\n".join(all_nets) + ("\n" if all_nets else ""), encoding="utf-8")
 
-    # json snippet
-    payload = [
-        {
-            "ip": all_nets,
-            "outboundTag": "RU",
-        }
-    ]
-    (listsdir / "ips-for-ru-snippet.json").write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-
-    # json snippet blancer
-    payload = [
-        {
-            "ip": all_nets,
-            "balancerTag": "BAL-RU",
-        }
-    ]
-    (listsdir / "ips-for-ru-snippet-balancer.json").write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-  
-    # json singbox
-    payload = {
-      "version": 2,
-      "rules": [
-        {
-          "ip_cidr": all_nets,
-        }
-      ]
-    }
-    (listsdir / "ips-for-ru-singbox.json").write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-    
     # yaml
     yaml_file = listsdir / "ips-for-ru.yaml"
     with yaml_file.open("w", encoding="utf-8", newline="\n") as f:

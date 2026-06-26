@@ -61,7 +61,7 @@ def main():
         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-travel-ru.list",
         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-ecommerce-ru.list",
         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-retail-ru.list",
-        "https://raw.githubusercontent.com/Davoyan/mihomo-rule-sets/main/domains/category-ru-legacy.txt",
+        "https://raw.githubusercontent.com/mireon-network/mihomo_based_by_davoyan/main/rules/domains/category-ru-legacy.txt",
     ]
 
     ru_domains = set([

@@ -26,15 +26,14 @@ jobs:
         run:  |
           sudo apt update
           sudo apt install -y curl wget git jq
-          bash <(curl -fsSL https://sing-box.app/deb-install.sh)
           pip install maxminddb
 
       - name: Download IPinfo Lite CSV
         env:
           IPINFO_TOKEN: ${{ secrets.IPINFO_TOKEN }}
         run: |
-          curl -L "https://ipinfo.io/data/ipinfo_lite.csv.gz?token=${IPINFO_TOKEN}" -o ip-for-ru/ipinfo_lite.csv.gz
-          gunzip -f ip-for-ru/ipinfo_lite.csv.gz
+          curl -L "https://ipinfo.io/data/ipinfo_lite.csv.gz?token=${IPINFO_TOKEN}" -o rules/ip-for-ru/ipinfo_lite.csv.gz
+          gunzip -f rules/ip-for-ru/ipinfo_lite.csv.gz
 
       - name: Download MaxMind MMDB
         env:
@@ -43,7 +42,7 @@ jobs:
         run: |
           set -euo pipefail
       
-          mkdir -p ip-for-ru
+          mkdir -p rules/ip-for-ru
           workdir="$(mktemp -d)"
       
           curl -fsSL -u "$MAXMIND_ACCOUNT_ID:$MAXMIND_LICENSE_KEY" \
@@ -59,12 +58,12 @@ jobs:
             exit 1
           fi
       
-          cp "$mmdb_file" ip-for-ru/maxmind.mmdb
+          cp "$mmdb_file" rules/ip-for-ru/maxmind.mmdb
 
       - name: Generate ip lists
         run: |
-          mkdir -p ip-for-ru/lists
-          python ip-for-ru/generate.py
+          mkdir -p rules/ip-for-ru/lists
+          python rules/ip-for-ru/generate.py
 
       - name: Install mihomo
         run: |
@@ -78,13 +77,9 @@ jobs:
 
       - name: Convert .yaml to .mrs (ipcidr)
         run: |
-          find ip-for-ru/lists -type f -name "*.yaml" -print0 | while IFS= read -r -d '' file; do
+          find rules/ip-for-ru/lists -type f -name "*.yaml" -print0 | while IFS= read -r -d '' file; do
             mihomo convert-ruleset ipcidr yaml "$file" "${file%.yaml}.mrs"
           done
-
-      - name: Generate srs
-        run: |
-         sing-box rule-set compile --output ip-for-ru/lists/ips-for-ru-singbox.srs ip-for-ru/lists/ips-for-ru-singbox.json
 
       - name: Commit and push generated files
         env:
@@ -92,7 +87,7 @@ jobs:
         run: |
           git config user.name "IP for RU lists Generator"
           git config user.email "noreply@github.com"
-          git add ip-for-ru/lists/*
+          git add rules/ip-for-ru/lists/*
           git commit -m "Update IP for RU lists" || echo "No changes"
           git pull --rebase
           git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
