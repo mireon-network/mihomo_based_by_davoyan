@@ -25,6 +25,7 @@ jobs:
           python scripts/update-ru-apps.py --no-backup
 
       - name: Commit and push changes
+        id: commit
         run: |
           git config user.name "mihomo-rule-sets bot"
           git config user.email "noreply@github.com"
@@ -33,9 +34,19 @@ jobs:
 
           if git diff --cached --quiet; then
             echo "No changes"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
           git commit -m "Update ru apps in remnawave template"
           git pull --rebase
           git push
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Purge jsDelivr cache
+        if: steps.commit.outputs.changed == 'true'
+        run: |
+          for f in $(git diff-tree --no-commit-id --name-only -r HEAD); do
+            echo "Purging $f"
+            curl -fsS "https://purge.jsdelivr.net/gh/${{ github.repository }}@main/$f" -o /dev/null || true
+          done
