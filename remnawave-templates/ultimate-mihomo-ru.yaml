@@ -19,6 +19,9 @@
 # Также спасибо за пояснения и идеи для конфигов. Отдельное спасибо сообществу Remnawave и её разработчику.
 #-------------------------------------------------------------------------------------------------------------------
 
+remnawave:
+  includeHiddenHosts: true # нужно для балансировщика по странам (скрытые хосты gateway_<провайдер>_<код>)
+
 mixed-port: 7890
 allow-lan: true
 bind-address: "*"
@@ -164,9 +167,9 @@ dns:
     - 77.88.8.8#DIRECT
     - system
   nameserver:
-    # Сервер по умолчанию, DNS запросы будут идти через то, что выбрано в "Остальные сайты"
-    - https://8.8.8.8/dns-query#🌍 Остальные сайты
-    - https://94.140.14.14/dns-query#🌍 Остальные сайты
+    # Сервер по умолчанию: всё неопознанное идёт напрямую (MATCH,DIRECT)
+    - https://8.8.8.8/dns-query#DIRECT
+    - https://94.140.14.14/dns-query#DIRECT
   nameserver-policy:
     # Приватные домены через системный ДНС
     rule-set:geosite-private:
@@ -176,12 +179,12 @@ dns:
       - rcode://success
     # DNS для сайтов с файлами правил
     raw.githubusercontent.com,cdn.jsdelivr.net,github.com:
-      - https://8.8.8.8/dns-query#🚫 Недоступные сайты
-      - https://94.140.14.14/dns-query#🚫 Недоступные сайты
+      - https://8.8.8.8/dns-query#PROXY
+      - https://94.140.14.14/dns-query#PROXY
     # DNS для заблоченных ресурсов, DNS запросы будут идти через то, что выбрано в "Недоступные сайты"
     rule-set:ru-inside,refilter_domains,ru-inline-banned,category-porn,ai,google-deepmind,speedtest-net:
-      - https://1.1.1.1/dns-query#🚫 Недоступные сайты # Cloudflare DNS
-      - https://8.8.8.8/dns-query#🚫 Недоступные сайты
+      - https://1.1.1.1/dns-query#PROXY # Cloudflare DNS
+      - https://8.8.8.8/dns-query#PROXY
     # DNS для Discord, DNS запросы будут идти через то, что выбрано в "Discord"
     rule-set:discord_domains:
       - https://8.8.8.8/dns-query#💬 Discord
@@ -190,15 +193,14 @@ dns:
     rule-set:youtube:
       - https://8.8.8.8/dns-query#▶️ YouTube
       - https://94.140.14.14/dns-query#▶️ YouTube
-    # DNS для доменов Telegram, DNS запросы будут идти через то, что выбрано в "Telegram"
+    # DNS для доменов Telegram, DNS запросы будут идти через VPN
     rule-set:telegram-domains,additional-telegram-domains:
-      - https://8.8.8.8/dns-query#➤ Telegram
-      - https://94.140.14.14/dns-query#➤ Telegram
-    # DNS для RU сайтов, DNS запросы будут через DNS указанные в direct-nameserver, если конечные ресурсы попадают в DIRECT.
-    # Если вы добавите в селектор "⚪🔵🔴 RU сайты" какой-то прокси, то DNS запросы будут идти через указанные тут DNS сервера через этот прокси.
+      - https://8.8.8.8/dns-query#PROXY
+      - https://94.140.14.14/dns-query#PROXY
+    # DNS для RU сайтов — резолвим напрямую (RU всегда идёт в DIRECT)
     rule-set:ru-inline,geosite-ru:
-      - https://77.88.8.8/dns-query#⚪🔵🔴 RU сайты
-      - https://8.8.8.8/dns-query#⚪🔵🔴 RU сайты
+      - https://77.88.8.8/dns-query#DIRECT
+      - https://8.8.8.8/dns-query#DIRECT
 
 proxies:
   - name: "🇷🇺 Без VPN"
@@ -208,72 +210,161 @@ proxies:
     type: dns
 
 proxy-groups:
-  - name: 🚫 Недоступные сайты
-    icon: https://cdn.jsdelivr.net/gh/remnawave/templates@main/icons/Blocked.png
+  # ============================================================
+  # БАЛАНСИРОВЩИК СЕРВЕРОВ
+  # Перенесён из template_remnawave.yaml (RoscomVPN).
+  # Сервера берутся из скрытых хостов Remnawave вида gateway_<провайдер>_<код страны>:
+  #   🇫🇮 = 101, 🇩🇪 = 102, 🇫🇷 = 1004
+  # Внутри страны — load-balance (sticky-sessions) между всеми провайдерами.
+  # ⚡️ Автовыбор — url-test между странами.
+  # ============================================================
+  - name: 🛡️ VPN
+    icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Hijacking.png
     type: select
+    remnawave:
+      include-proxies: false
     proxies:
-      - 🎲 Любой доступный сервер
-      - 🇷🇺 Без VPN # Опционально
+      - ⚡️ Автовыбор
+      - 🇫🇮 Финляндия
+      - 🇩🇪 Германия
+      - 🇫🇷 Франция
 
+  - name: 🇫🇮 Финляндия
+    type: load-balance
+    hidden: true
+    lazy: false
+    strategy: sticky-sessions
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    expected-status: 204
+    max-failed-times: 3
+    timeout: 3000
+    remnawave:
+      include-proxies: false
+    include-all: true
+    filter: "(?i)^gateway_[^_]+_101$"
+
+  - name: 🇩🇪 Германия
+    type: load-balance
+    hidden: true
+    lazy: false
+    strategy: sticky-sessions
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    expected-status: 204
+    max-failed-times: 3
+    timeout: 3000
+    remnawave:
+      include-proxies: false
+    include-all: true
+    filter: "(?i)^gateway_[^_]+_102$"
+
+  - name: 🇫🇷 Франция
+    type: load-balance
+    hidden: true
+    lazy: false
+    strategy: sticky-sessions
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    expected-status: 204
+    max-failed-times: 3
+    timeout: 3000
+    remnawave:
+      include-proxies: false
+    include-all: true
+    filter: "(?i)^gateway_[^_]+_1004$"
+
+  - name: ⚡️ Автовыбор
+    type: url-test
+    hidden: true
+    tolerance: 80
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    lazy: false
+    timeout: 3000
+    expected-status: 204
+    max-failed-times: 3
+    remnawave:
+      include-proxies: false
+    proxies:
+      - 🇫🇮 Финляндия
+      - 🇩🇪 Германия
+      - 🇫🇷 Франция
+
+  # ============================================================
+  # КАТЕГОРИИ ВЫБОРА
+  # ============================================================
   - name: ▶️ YouTube
     icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/YouTube.png
     type: select
     proxies:
-      - 🚫 Недоступные сайты
+      - 🛡️ VPN
+      - 🇫🇮 Финляндия
+      - 🇩🇪 Германия
+      - 🇫🇷 Франция
+      - 🇷🇺 Без VPN
 
   - name: 💬 Discord
     icon: https://cdn.jsdelivr.net/gh/remnawave/templates@main/icons/Discord.png
     type: select
     proxies:
-      - 🚫 Недоступные сайты
-
-  - name: ➤ Telegram
-    icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Telegram.png
-    type: select
-    proxies:
-      - 🚫 Недоступные сайты
+      - 🛡️ VPN
+      - 🇫🇮 Финляндия
+      - 🇩🇪 Германия
+      - 🇫🇷 Франция
       - 🇷🇺 Без VPN
 
-  - name: ⚪🔵🔴 RU сайты
-    icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Russia.png
+  - name: 🤖 ИИ
+    icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Bot.png
     type: select
-    remnawave: # Кастомное поле используемое только в Remnawave
-      include-proxies: false # Опционально, если поставить true, прокси будут включены в эту группу
     proxies:
-      - 🇷🇺 Без VPN
+      - 🛡️ VPN
+      - 🇫🇮 Финляндия
+      - 🇩🇪 Германия
+      - 🇫🇷 Франция
 
-  - name: 🌍 Остальные сайты
-    icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Global.png
+  - name: 🎮 Игры
+    icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Game.png
     type: select
     proxies:
-      - 🚫 Недоступные сайты
-      - 🇷🇺 Без VPN
+      - 🇷🇺 Без VPN # по умолчанию напрямую, можно переключить
+      - 🛡️ VPN
+      - 🇫🇮 Финляндия
+      - 🇩🇪 Германия
+      - 🇫🇷 Франция
+
+  - name: 🎮 Лаунчеры
+    icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Download.png
+    type: select
+    proxies:
+      - 🇷🇺 Без VPN # по умолчанию напрямую, можно переключить
+      - 🛡️ VPN
+      - 🇫🇮 Финляндия
+      - 🇩🇪 Германия
+      - 🇫🇷 Франция
+
+  - name: 🍷 Wine
+    icon: https://api.iconify.design/mdi/glass-wine.svg?color=%23B11226&width=128&height=128
+    type: select
+    proxies:
+      - 🇷🇺 Без VPN # по умолчанию напрямую, можно переключить
+      - 🛡️ VPN
+      - 🇫🇮 Финляндия
+      - 🇩🇪 Германия
+      - 🇫🇷 Франция
 
   - name: PROXY
     remnawave: # Кастомное поле используемое только в Remnawave
-      include-proxies: true
+      include-proxies: false
     type: select
     hidden: true
     proxies:
-      - 🚫 Недоступные сайты
-
-  - name: 🎲 Любой доступный сервер
-    type: fallback
-    # Если не хотим, чтобы включались определённые сервера в селектор, их можно убрать из него с помощью exclude-filter
-    # В данном случае будут исключены все прокси, где в name есть строки "США" или "Канада" или "Япония"
-    #exclude-filter: "США|Канада|Япония"
-    remnawave: # Кастомное поле используемое только в Remnawave
-      include-proxies: true
-      shuffle-proxies-order: true
-    url: "https://www.gstatic.com/generate_204"
-    interval: 300
-    hidden: true
-    lazy: true
+      - 🛡️ VPN
 
 rule-providers:
   geosite-ru:
     type: http
-    proxy: 🚫 Недоступные сайты
+    proxy: PROXY
     interval: 86400
     behavior: domain
     format: mrs
@@ -281,7 +372,7 @@ rule-providers:
     path: ./rule-sets/geosite-ru.mrs
   ai:
     type: http
-    proxy: 🚫 Недоступные сайты
+    proxy: PROXY
     interval: 86400
     behavior: domain
     format: mrs
@@ -289,7 +380,7 @@ rule-providers:
     path: ./rule-sets/ai.mrs
   category-porn:
     type: http
-    proxy: 🚫 Недоступные сайты
+    proxy: PROXY
     interval: 86400
     behavior: domain
     format: mrs
@@ -297,7 +388,7 @@ rule-providers:
     path: ./rule-sets/category-porn.mrs
   geoip-for-ru:
     type: http
-    proxy: 🚫 Недоступные сайты
+    proxy: PROXY
     interval: 86400
     behavior: ipcidr
     format: mrs
@@ -305,7 +396,7 @@ rule-providers:
     path: ./rule-sets/geoip-for-ru.mrs
   geosite-private:
     type: http
-    proxy: 🚫 Недоступные сайты
+    proxy: PROXY
     interval: 86400
     behavior: domain
     format: mrs
@@ -313,7 +404,7 @@ rule-providers:
     path: ./rule-sets/geosite-private.mrs
   discord_domains:
     type: http
-    proxy: 🚫 Недоступные сайты
+    proxy: PROXY
     interval: 86400
     behavior: domain
     format: mrs
@@ -321,7 +412,7 @@ rule-providers:
     path: ./rule-sets/discord_domains.mrs
   speedtest-net:
     type: http
-    proxy: 🚫 Недоступные сайты
+    proxy: PROXY
     interval: 86400
     behavior: domain
     format: mrs
@@ -329,7 +420,7 @@ rule-providers:
     path: ./rule-sets/speedtest-net.mrs
   remote-control:
     type: http
-    proxy: 🚫 Недоступные сайты
+    proxy: PROXY
     interval: 86400
     behavior: domain
     format: mrs
@@ -337,7 +428,7 @@ rule-providers:
     path: ./rule-sets/remote-control.mrs
   discord_voiceips:
     type: http
-    proxy: 🚫 Недоступные сайты
+    proxy: PROXY
     interval: 86400
     behavior: ipcidr
     format: mrs
@@ -345,7 +436,7 @@ rule-providers:
     path: ./rule-sets/discord_voiceips.mrs
   refilter_domains:
     type: http
-    proxy: 🚫 Недоступные сайты
+    proxy: PROXY
     interval: 86400
     behavior: domain
     format: mrs
@@ -353,7 +444,7 @@ rule-providers:
     path: ./rule-sets/refilter.mrs
   youtube:
     type: http
-    proxy: 🚫 Недоступные сайты
+    proxy: PROXY
     interval: 86400
     behavior: domain
     format: mrs
@@ -361,7 +452,7 @@ rule-providers:
     path: ./rule-sets/youtube.mrs
   google-deepmind:
     type: http
-    proxy: 🚫 Недоступные сайты
+    proxy: PROXY
     interval: 86400
     behavior: domain
     format: mrs
@@ -369,7 +460,7 @@ rule-providers:
     path: ./rule-sets/google-deepmind.mrs
   telegram-ips:
     type: http
-    proxy: 🚫 Недоступные сайты
+    proxy: PROXY
     interval: 86400
     behavior: ipcidr
     format: mrs
@@ -377,7 +468,7 @@ rule-providers:
     path: ./rule-sets/telegram-ips.mrs
   telegram-domains:
     type: http
-    proxy: 🚫 Недоступные сайты
+    proxy: PROXY
     interval: 86400
     behavior: domain
     format: mrs
@@ -385,7 +476,7 @@ rule-providers:
     path: ./rule-sets/telegram-domains.mrs
   additional-telegram-ips:
     type: http
-    proxy: 🚫 Недоступные сайты
+    proxy: PROXY
     interval: 86400
     behavior: classical
     format: yaml
@@ -393,7 +484,7 @@ rule-providers:
     path: ./rule-sets/additional-telegram-ips.yaml
   additional-telegram-domains:
     type: http
-    proxy: 🚫 Недоступные сайты
+    proxy: PROXY
     interval: 86400
     behavior: classical
     format: yaml
@@ -401,23 +492,39 @@ rule-providers:
     path: ./rule-sets/additional-telegram-domains.yaml
   oisd_big:
     type: http
-    proxy: 🚫 Недоступные сайты
+    proxy: PROXY
     interval: 86400
     behavior: domain
     format: mrs
     url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/legiz-ru/oisd/big.mrs
     path: ./rule-sets/oisd_big.mrs
+  win-spy:
+    type: http
+    proxy: PROXY
+    interval: 86400
+    behavior: domain
+    format: mrs
+    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/roscomvpn/mrs/win-spy.mrs
+    path: ./rule-sets/win-spy.mrs
   torrent-trackers:
     type: http
-    proxy: 🚫 Недоступные сайты
+    proxy: PROXY
     interval: 86400
     behavior: domain
     format: mrs
     url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/legiz-ru/other/torrent-trackers.mrs
     path: ./rule-sets/torrent-trackers.mrs
+  torrent-domains:
+    type: http
+    proxy: PROXY
+    interval: 86400
+    behavior: domain
+    format: mrs
+    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/roscomvpn/mrs/torrent-domains.mrs
+    path: ./rule-sets/torrent-domains.mrs
   torrent-clients:
     type: http
-    proxy: 🚫 Недоступные сайты
+    proxy: PROXY
     interval: 86400
     behavior: classical
     format: yaml
@@ -425,15 +532,105 @@ rule-providers:
     path: ./rule-sets/torrent-clients.yaml
   ru-apps:
     type: http
-    proxy: 🚫 Недоступные сайты
+    proxy: PROXY
     interval: 86400
     behavior: classical
     format: yaml
     url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/legiz-ru/other/ru-app-list.yaml
     path: ./rule-sets/ru-apps.yaml
+
+  # --- Категории выбора (RoscomVPN / mihomo_routing) ---
+  roscomvpn-ai:
+    type: http
+    proxy: PROXY
+    interval: 86400
+    behavior: classical
+    format: yaml
+    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/roscomvpn/ai.yaml
+    path: ./rule-sets/roscomvpn-ai.yaml
+  games:
+    type: http
+    proxy: PROXY
+    interval: 86400
+    behavior: classical
+    format: yaml
+    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/roscomvpn/games.yaml
+    path: ./rule-sets/games.yaml
+  games-launchers:
+    type: http
+    proxy: PROXY
+    interval: 86400
+    behavior: classical
+    format: yaml
+    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/roscomvpn/games-launchers.yaml
+    path: ./rule-sets/games-launchers.yaml
+  games-proxy-rules:
+    type: http
+    proxy: PROXY
+    interval: 86400
+    behavior: classical
+    format: yaml
+    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/roscomvpn/games-proxy-rules.yaml
+    path: ./rule-sets/games-proxy-rules.yaml
+  wine:
+    type: http
+    proxy: PROXY
+    interval: 86400
+    behavior: classical
+    format: yaml
+    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/roscomvpn/wine.yaml
+    path: ./rule-sets/wine.yaml
+  steam:
+    type: http
+    proxy: PROXY
+    interval: 86400
+    behavior: domain
+    format: mrs
+    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/roscomvpn/mrs/steam.mrs
+    path: ./rule-sets/steam.mrs
+  epicgames:
+    type: http
+    proxy: PROXY
+    interval: 86400
+    behavior: domain
+    format: mrs
+    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/roscomvpn/mrs/epicgames.mrs
+    path: ./rule-sets/epicgames.mrs
+  origin:
+    type: http
+    proxy: PROXY
+    interval: 86400
+    behavior: domain
+    format: mrs
+    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/roscomvpn/mrs/origin.mrs
+    path: ./rule-sets/origin.mrs
+  riot:
+    type: http
+    proxy: PROXY
+    interval: 86400
+    behavior: domain
+    format: mrs
+    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/roscomvpn/mrs/riot.mrs
+    path: ./rule-sets/riot.mrs
+  escapefromtarkov:
+    type: http
+    proxy: PROXY
+    interval: 86400
+    behavior: domain
+    format: mrs
+    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/roscomvpn/mrs/escapefromtarkov.mrs
+    path: ./rule-sets/escapefromtarkov.mrs
+  faceit:
+    type: http
+    proxy: PROXY
+    interval: 86400
+    behavior: domain
+    format: mrs
+    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/roscomvpn/mrs/faceit.mrs
+    path: ./rule-sets/faceit.mrs
   ru-inside:
     type: http
-    proxy: 🚫 Недоступные сайты
+    proxy: PROXY
     interval: 86400
     behavior: classical
     format: text
@@ -441,7 +638,7 @@ rule-providers:
     path: ./rule-sets/ru-inside.lst
   cloudflare-ips:
     type: http
-    proxy: 🚫 Недоступные сайты
+    proxy: PROXY
     interval: 86400
     behavior: ipcidr
     format: mrs
@@ -572,31 +769,33 @@ rules:
   #- PROCESS-NAME-REGEX,(?i).*teamviewer.*,DIRECT
   #- RULE-SET,remote-control,DIRECT
 
-  # Блокировка рекламы (опционально)
+  # Блокировка рекламы и телеметрии Windows (опционально)
   - RULE-SET,oisd_big,REJECT # Списки скомпилированные Legiz
+  - RULE-SET,win-spy,REJECT-DROP # Телеметрия Windows
 
   # Отправляем торренты в DIRECT (опционально)
   - RULE-SET,torrent-clients,DIRECT
   - RULE-SET,torrent-trackers,DIRECT
+  - RULE-SET,torrent-domains,DIRECT # +11 DHT/bootstrap-трекеров и матчинг поддоменов
   - PROCESS-NAME-REGEX,(?i).*torrent.*,DIRECT
 
   # Списки РУ приложений от Legiz
-  - RULE-SET,ru-apps,⚪🔵🔴 RU сайты
+  - RULE-SET,ru-apps,DIRECT
 
   # Делаем REJECT QUIC
   - RULE-SET,quic,REJECT
 
   # Определялки IP пускаем в прокси, чтобы пользователь видел
-  - DOMAIN,flclashx.app,🚫 Недоступные сайты
-  - DOMAIN,ipwho.is,🚫 Недоступные сайты
-  - DOMAIN,api.myip.com,🚫 Недоступные сайты
-  - DOMAIN,ipapi.co,🚫 Недоступные сайты
-  - DOMAIN,ident.me,🚫 Недоступные сайты
-  - DOMAIN,ip-api.com,🚫 Недоступные сайты
-  - DOMAIN,ipinfo.io,🚫 Недоступные сайты
-  - DOMAIN,api.ip.sb,🚫 Недоступные сайты
-  - DOMAIN,2ip.io,🚫 Недоступные сайты
-  - DOMAIN,2ipcore.com,🚫 Недоступные сайты
+  - DOMAIN,flclashx.app,PROXY
+  - DOMAIN,ipwho.is,PROXY
+  - DOMAIN,api.myip.com,PROXY
+  - DOMAIN,ipapi.co,PROXY
+  - DOMAIN,ident.me,PROXY
+  - DOMAIN,ip-api.com,PROXY
+  - DOMAIN,ipinfo.io,PROXY
+  - DOMAIN,api.ip.sb,PROXY
+  - DOMAIN,2ip.io,PROXY
+  - DOMAIN,2ipcore.com,PROXY
 
   # -----
 
@@ -604,16 +803,16 @@ rules:
   - RULE-SET,youtube,▶️ YouTube
   - PROCESS-NAME-REGEX,(?i).*youtube.*,▶️ YouTube
 
-  # ➤ Telegram
-  - RULE-SET,telegram-ips,➤ Telegram
-  - RULE-SET,telegram-domains,➤ Telegram
-  - RULE-SET,additional-telegram-domains,➤ Telegram
-  - RULE-SET,additional-telegram-ips,➤ Telegram
-  - PROCESS-NAME-REGEX,(?i).*ayugram.*,➤ Telegram
-  - PROCESS-NAME-REGEX,(?i).*telegram.*,➤ Telegram
-  - PROCESS-NAME-REGEX,(?i).*nekogram.*,➤ Telegram
-  - PROCESS-NAME-REGEX,(?i).*nagram.*,➤ Telegram
-  - PROCESS-NAME-REGEX,(?i).*nekox.*,➤ Telegram
+  # Telegram — всегда через VPN (отдельной категории нет)
+  - RULE-SET,telegram-ips,PROXY
+  - RULE-SET,telegram-domains,PROXY
+  - RULE-SET,additional-telegram-domains,PROXY
+  - RULE-SET,additional-telegram-ips,PROXY
+  - PROCESS-NAME-REGEX,(?i).*ayugram.*,PROXY
+  - PROCESS-NAME-REGEX,(?i).*telegram.*,PROXY
+  - PROCESS-NAME-REGEX,(?i).*nekogram.*,PROXY
+  - PROCESS-NAME-REGEX,(?i).*nagram.*,PROXY
+  - PROCESS-NAME-REGEX,(?i).*nekox.*,PROXY
 
   # 💬 Discord
   - AND,((RULE-SET,cloudflare-ips),(NETWORK,udp),(DST-PORT,19200-19500)),💬 Discord
@@ -623,26 +822,41 @@ rules:
   - PROCESS-NAME-REGEX,(?i).*discord.*,💬 Discord
   - PROCESS-NAME-REGEX,(?i).*vesktop.*,💬 Discord
 
-  # 🚫 Недоступные сайты
-  - RULE-SET,ru-inside,🚫 Недоступные сайты # ITDog списки доменов недоступные из РФ
-  - RULE-SET,refilter_domains,🚫 Недоступные сайты # Re:Filter списки доменов недоступные из РФ
-  - RULE-SET,ru-inline-banned,🚫 Недоступные сайты # Домены набитые вручную (смотрите выше)
-  - RULE-SET,inline-blocked-ips,🚫 Недоступные сайты # IP набитые вручную (смотрите выше)
-  - RULE-SET,category-porn,🚫 Недоступные сайты # Опционально
-  - RULE-SET,ai,🚫 Недоступные сайты # Нейросети
-  - RULE-SET,google-deepmind,🚫 Недоступные сайты # Google Gemini и AI Studio
-  - RULE-SET,speedtest-net,🚫 Недоступные сайты # speedtest.net
+  # 🤖 ИИ (раньше блокового списка: чтобы домены/процессы ИИ шли в свой селектор)
+  - RULE-SET,roscomvpn-ai,🤖 ИИ # OpenAI, Claude, Gemini, Copilot, десктоп/мобайл процессы
+  - RULE-SET,ai,🤖 ИИ # Нейросети (metacubex category-ai-!cn)
+  - RULE-SET,google-deepmind,🤖 ИИ # Google Gemini и AI Studio
 
-  # ⚪🔵🔴 RU сайты
-  - RULE-SET,ru-inline,⚪🔵🔴 RU сайты # Списки набитые вручную (смотрите выше в rule-providers)
+  # 🎮 Игры / 🎮 Лаунчеры / 🍷 Wine
+  - RULE-SET,games-proxy-rules,🎮 Игры # игровые сервисы, которым нужен прокси
+  - RULE-SET,games-launchers,🎮 Лаунчеры # лаунчеры (по умолчанию DIRECT, можно переключить)
+  - RULE-SET,epicgames,🎮 Игры
+  - RULE-SET,origin,🎮 Игры
+  - RULE-SET,riot,🎮 Игры
+  - RULE-SET,escapefromtarkov,🎮 Игры
+  - RULE-SET,steam,🎮 Игры
+  - RULE-SET,faceit,🎮 Игры
+  - RULE-SET,games,🎮 Игры # общая игровая категория (домены/процессы)
+  - RULE-SET,wine,🍷 Wine # Windows-софт/игры на Linux (Wine/Proton)
+
+  # Заблокированные / недоступные из РФ домены → PROXY
+  - RULE-SET,ru-inside,PROXY # ITDog списки доменов недоступные из РФ
+  - RULE-SET,refilter_domains,PROXY # Re:Filter списки доменов недоступные из РФ
+  - RULE-SET,ru-inline-banned,PROXY # Домены набитые вручную (смотрите выше)
+  - RULE-SET,inline-blocked-ips,PROXY # IP набитые вручную (смотрите выше)
+  - RULE-SET,category-porn,PROXY # Опционально
+  - RULE-SET,speedtest-net,PROXY # speedtest.net
+
+  # RU сайты → напрямую (DIRECT)
+  - RULE-SET,ru-inline,DIRECT # Списки набитые вручную (смотрите выше в rule-providers)
 
   # geosite-ru включает в себя и собирается автоматически тут (https://github.com/mireon-network/mihomo_based_by_davoyan) -
   # Подробнее о том, из чего формируются списки, читайте в readme https://github.com/mireon-network/mihomo_based_by_davoyan
-  - RULE-SET,geosite-ru,⚪🔵🔴 RU сайты
+  - RULE-SET,geosite-ru,DIRECT
 
   # geo-ip-for-ru (https://github.com/mireon-network/mihomo_based_by_davoyan/tree/main/rules/ip-for-ru/lists)
   # Подробнее о том, из чего формируются списки, читайте в readme https://github.com/mireon-network/mihomo_based_by_davoyan
-  - RULE-SET,geoip-for-ru,⚪🔵🔴 RU сайты
+  - RULE-SET,geoip-for-ru,DIRECT
 
-  # 🌍 Остальные сайты
-  - MATCH,🌍 Остальные сайты
+  # Всё остальное → через прокси (PROXY)
+  - MATCH,PROXY

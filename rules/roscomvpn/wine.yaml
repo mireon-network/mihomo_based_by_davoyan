@@ -1,0 +1,17 @@
+payload:
+  # 🍷 Wine — Windows-софт и игры, запущенные на Linux через Wine / Proton
+  # (Steam Play, Proton-GE, Lutris, Bottles, «голый» Wine).
+  #
+  # ПОЧЕМУ ОТДЕЛЬНАЯ КАТЕГОРИЯ:
+  # под Proton/Wine сетевым сокетом владеет ОБЩИЙ процесс wineserver
+  # (или wine/wine64/preloader), а НЕ конкретный game.exe. Поэтому:
+  #   1) точечные .exe-правила (games.yaml) под Proton не срабатывают;
+  #   2) имя процесса одинаково для ЛЮБОЙ игры/приложения под Wine —
+  #      различить их на уровне процесса нельзя.
+  # Это осознанный catch-all: весь Wine/Proton-трафик уходит в селектор
+  # «🍷 Wine», где политику можно выбрать независимо от игр.
+  - PROCESS-NAME-REGEX,(?i)^(wineserver|wine|wine64|wine-preloader|wine64-preloader)$
+
+  # Точечнее — только Steam Proton (не задевая Lutris/Bottles/«голый» Wine),
+  # по пути исполняемого файла процесса:
+  # - PROCESS-PATH-REGEX,(?i)/steam/.*/(wineserver|wine|wine64|wine-preloader|wine64-preloader)$

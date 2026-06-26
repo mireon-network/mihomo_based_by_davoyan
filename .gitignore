@@ -1,0 +1,6 @@
+# Local mihomo binary downloaded by scripts/mirror-external.py
+.tools/
+
+# Python
+__pycache__/
+*.pyc

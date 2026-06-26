@@ -1,0 +1,4 @@
+payload:
+  # Домены и процессы игр — всегда PROXY (доступ без VPN часто недоступен или ломается)
+  - DOMAIN-SUFFIX,easebar.com,PROXY
+  - DOMAIN-SUFFIX,deadorbit.net,PROXY

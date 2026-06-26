@@ -20,7 +20,18 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Mirror external sources
+      - name: Install mihomo
+        run: |
+          M_VER=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest | \
+                  grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+          echo "Latest mihomo version: $M_VER"
+          wget -O mihomo.gz https://github.com/MetaCubeX/mihomo/releases/download/v${M_VER}/mihomo-linux-amd64-v${M_VER}.gz
+          gunzip -f mihomo.gz
+          chmod +x mihomo
+          sudo mv mihomo /usr/local/bin/
+          mihomo -v
+
+      - name: Mirror external sources and build .mrs
         run: |
           python scripts/mirror-external.py
 

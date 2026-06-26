@@ -1,0 +1,62 @@
+payload:
+  # Дополнение к metacubex-спискам (category-ai-!cn + google-deepmind).
+  # Домены здесь НЕ дублируются — за домены отвечает metacubex.
+  # Этот файл содержит ТОЛЬКО правила по именам процессов (десктоп/мобайл),
+  # которых в metacubex нет вовсе.
+  #
+  # ВНИМАНИЕ: файл выведен из авто-зеркалирования (scripts/mirror-external.py)
+  # и поддерживается вручную.
+
+  # --- Десктоп: исполняемый файл ---
+  - PROCESS-NAME,ChatGPT
+  - PROCESS-NAME,ChatGPT.exe
+  - PROCESS-NAME,Claude
+  - PROCESS-NAME,Claude.exe
+  - PROCESS-NAME,Cursor
+  - PROCESS-NAME,Cursor.exe
+  - PROCESS-NAME,Windsurf
+  - PROCESS-NAME,Windsurf.exe
+  - PROCESS-NAME,CherryStudio
+  - PROCESS-NAME,CherryStudio.exe
+  # --- Google Antigravity (agent app) & Antigravity IDE ---
+  - PROCESS-NAME,Antigravity
+  - PROCESS-NAME,Antigravity.exe
+  - PROCESS-NAME,Antigravity IDE
+  - PROCESS-NAME,Antigravity IDE.exe
+  # macOS: helper-процессы (Electron)
+  - PROCESS-NAME,Antigravity Helper
+  - PROCESS-NAME,Antigravity Helper (GPU)
+  - PROCESS-NAME,Antigravity Helper (Renderer)
+  - PROCESS-NAME,Antigravity Helper (Plugin)
+  - PROCESS-NAME,Antigravity IDE Helper
+  - PROCESS-NAME,Antigravity IDE Helper (GPU)
+  - PROCESS-NAME,Antigravity IDE Helper (Renderer)
+  - PROCESS-NAME,Antigravity IDE Helper (Plugin)
+  # macOS: bundle identifier
+  - PROCESS-NAME,com.google.antigravity
+  - PROCESS-NAME,com.google.antigravity.helper
+  - PROCESS-NAME,com.google.antigravity.ide
+  # Linux
+  - PROCESS-NAME,antigravity
+  - PROCESS-NAME,google-antigravity
+  - PROCESS-NAME,antigravity-ide
+  # --- Google Gemini (отдельное приложение; на Android пакет всё ещё bard) ---
+  - PROCESS-NAME,com.google.android.apps.bard
+  - PROCESS-NAME,com.google.gemini
+  # --- Android: package name ---
+  - PROCESS-NAME,com.openai.chatgpt
+  - PROCESS-NAME,com.anthropic.claude
+  - PROCESS-NAME,ai.perplexity.app.android
+  - PROCESS-NAME,com.microsoft.copilot
+  - PROCESS-NAME,com.deepseek.chat
+  - PROCESS-NAME,ai.x.grok
+  - PROCESS-NAME,com.poe.android
+  - PROCESS-NAME,ai.character.app
+  - PROCESS-NAME,ai.mistral.chat
+  - PROCESS-NAME,com.facebook.stella
+  # --- iOS: bundle identifier (часть совпадает с Android) ---
+  - PROCESS-NAME,com.openai.chat
+  - PROCESS-NAME,ai.perplexity.app
+  - PROCESS-NAME,ai.x.GrokApp
+  - PROCESS-NAME,com.quora.app.Experts
+  - PROCESS-NAME,com.facebook.stellaapp

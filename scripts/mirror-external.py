@@ -1,63 +1,149 @@
 #!/usr/bin/env python3
-"""Mirror external rule-sets referenced by the Remnawave template into this repo.
+"""Mirror external rule-sets into this repo as *readable text*, then build .mrs locally.
 
-Downloads every upstream source listed in SOURCES into the ``rules/`` directory,
-so the template can reference our own repository instead of third-party hosts.
-Run by the ``mirror-external`` workflow on a schedule.
+Rationale: third-party ``.mrs`` files are opaque binaries — nobody can review what
+domains/IPs they contain. Instead of mirroring those binaries verbatim, we keep a
+human-readable text source in the repo and compile the ``.mrs`` ourselves with
+``mihomo convert-ruleset``. The template keeps referencing the same ``.mrs`` paths,
+so nothing downstream changes.
+
+Three kinds of sources (see SETS / PLAIN below):
+
+1. Upstream already publishes text (MetaCubeX ``.list``, legiz ``.yaml``):
+   download the text, then compile ``.mrs`` from it.
+2. Upstream publishes only ``.mrs`` (hydraponique, a couple of legiz sets):
+   download the ``.mrs``, decompile it to text for transparency, then recompile.
+3. Sources that are already plain text/yaml and used as-is (PLAIN): just download.
+
+Run by the ``mirror-external`` workflow on a schedule. Needs the ``mihomo`` binary
+(found on PATH, via $MIHOMO_BIN, or auto-downloaded into .tools/).
 """
 from __future__ import annotations
 
+import gzip
+import os
+import platform
+import shutil
+import subprocess
 import sys
+import tempfile
 import urllib.request
 from pathlib import Path
 
-# (upstream url, destination path relative to repo root)
-SOURCES: list[tuple[str, str]] = [
-    # MetaCubeX / meta-rules-dat
-    ("https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-ai-!cn.mrs",
-     "rules/metacubex/geosite/category-ai-!cn.mrs"),
-    ("https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-porn.mrs",
-     "rules/metacubex/geosite/category-porn.mrs"),
-    ("https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/private.mrs",
-     "rules/metacubex/geosite/private.mrs"),
-    ("https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/discord.mrs",
-     "rules/metacubex/geosite/discord.mrs"),
-    ("https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/speedtest.mrs",
-     "rules/metacubex/geosite/speedtest.mrs"),
-    ("https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-remote-control.mrs",
-     "rules/metacubex/geosite/category-remote-control.mrs"),
-    ("https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/youtube.mrs",
-     "rules/metacubex/geosite/youtube.mrs"),
-    ("https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google-deepmind.mrs",
-     "rules/metacubex/geosite/google-deepmind.mrs"),
-    ("https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/telegram.mrs",
-     "rules/metacubex/geosite/telegram.mrs"),
-    ("https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/telegram.mrs",
-     "rules/metacubex/geoip/telegram.mrs"),
-    ("https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/cloudflare.mrs",
-     "rules/metacubex/geoip/cloudflare.mrs"),
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
-    # legiz-ru / mihomo-rule-sets
-    ("https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/main/other/discord-voice-ip-list.mrs",
-     "rules/legiz-ru/other/discord-voice-ip-list.mrs"),
-    ("https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/main/re-filter/domain-rule.mrs",
-     "rules/legiz-ru/re-filter/domain-rule.mrs"),
-    ("https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/main/oisd/big.mrs",
-     "rules/legiz-ru/oisd/big.mrs"),
-    ("https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/main/other/torrent-trackers.mrs",
-     "rules/legiz-ru/other/torrent-trackers.mrs"),
+MIHOMO_VERSION = os.environ.get("MIHOMO_VERSION", "v1.19.25")
+
+# Sets that produce a .mrs. Each entry:
+#   mrs          — destination .mrs (relative to repo root); referenced by the template
+#   behavior     — domain | ipcidr | classical (must match the rule-provider)
+#   text         — destination text source (relative); committed for transparency
+#   text_format  — "text" (.list) or "yaml" (.yaml); how to compile text -> mrs
+# Exactly one source of truth:
+#   text_url     — upstream text to download directly, OR
+#   mrs_url      — upstream .mrs to download and decompile into `text`
+SETS: list[dict[str, str]] = [
+    # --- MetaCubeX / meta-rules-dat: upstream ships .list next to .mrs ---
+    *[
+        {
+            "mrs": f"rules/metacubex/geosite/{name}.mrs",
+            "text": f"rules/metacubex/geosite/{name}.list",
+            "behavior": "domain",
+            "text_format": "text",
+            "text_url": f"https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/{name}.list",
+        }
+        for name in (
+            "category-ai-!cn",
+            "category-porn",
+            "private",
+            "discord",
+            "speedtest",
+            "category-remote-control",
+            "youtube",
+            "google-deepmind",
+            "telegram",
+        )
+    ],
+    *[
+        {
+            "mrs": f"rules/metacubex/geoip/{name}.mrs",
+            "text": f"rules/metacubex/geoip/{name}.list",
+            "behavior": "ipcidr",
+            "text_format": "text",
+            "text_url": f"https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/{name}.list",
+        }
+        for name in ("telegram", "cloudflare", "private")
+    ],
+
+    # --- legiz-ru: upstream ships .yaml next to .mrs ---
+    {
+        "mrs": "rules/legiz-ru/re-filter/domain-rule.mrs",
+        "text": "rules/legiz-ru/re-filter/domain-rule.yaml",
+        "behavior": "domain",
+        "text_format": "yaml",
+        "text_url": "https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/main/re-filter/domain-rule.yaml",
+    },
+    {
+        "mrs": "rules/legiz-ru/oisd/big.mrs",
+        "text": "rules/legiz-ru/oisd/big.yaml",
+        "behavior": "domain",
+        "text_format": "yaml",
+        "text_url": "https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/main/oisd/big.yaml",
+    },
+
+    # --- legiz-ru: upstream ships ONLY .mrs -> decompile to text, recompile ---
+    {
+        "mrs": "rules/legiz-ru/other/discord-voice-ip-list.mrs",
+        "text": "rules/legiz-ru/other/discord-voice-ip-list.list",
+        "behavior": "ipcidr",
+        "text_format": "text",
+        "mrs_url": "https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/main/other/discord-voice-ip-list.mrs",
+    },
+    {
+        "mrs": "rules/legiz-ru/other/torrent-trackers.mrs",
+        "text": "rules/legiz-ru/other/torrent-trackers.list",
+        "behavior": "domain",
+        "text_format": "text",
+        "mrs_url": "https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/main/other/torrent-trackers.mrs",
+    },
+
+    # --- hydraponique / roscomvpn-geosite: upstream ships ONLY .mrs -> decompile ---
+    *[
+        {
+            "mrs": f"rules/roscomvpn/mrs/{dest}.mrs",
+            "text": f"rules/roscomvpn/mrs/{dest}.list",
+            "behavior": "domain",
+            "text_format": "text",
+            "mrs_url": f"https://raw.githubusercontent.com/hydraponique/roscomvpn-geosite/release/mihomo/{src}.mrs",
+        }
+        for src, dest in (
+            ("whitelist", "whitelist"),
+            ("win-spy", "win-spy"),
+            ("torrent", "torrent-domains"),
+            ("epicgames", "epicgames"),
+            ("escapefromtarkov", "escapefromtarkov"),
+            ("faceit", "faceit"),
+            ("origin", "origin"),
+            ("riot", "riot"),
+            ("steam", "steam"),
+        )
+    ],
+]
+
+# Sources that are already plain text/yaml and consumed as-is by the template.
+# (url, destination path relative to repo root)
+PLAIN: list[tuple[str, str]] = [
     ("https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/main/other/torrent-clients.yaml",
      "rules/legiz-ru/other/torrent-clients.yaml"),
     ("https://raw.githubusercontent.com/legiz-ru/mihomo-rule-sets/main/other/ru-app-list.yaml",
      "rules/legiz-ru/other/ru-app-list.yaml"),
-
-    # itdoginfo / allow-domains
     ("https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Russia/inside-clashx.lst",
      "rules/itdoginfo/inside-clashx.lst"),
-
-    # roscomvpn / custom-category
     ("https://raw.githubusercontent.com/roscomvpn/custom-category/release/mihomo/games.yaml",
      "rules/roscomvpn/games.yaml"),
+    # NB: кастомные YAML НЕ зеркалятся — они ведутся вручную прямо в этом репозитории
+    # и нигде в апстриме отсутствуют:
+    #   rules/roscomvpn/ai.yaml, games-launchers.yaml, games-proxy-rules.yaml, wine.yaml
 ]
 
 
@@ -73,31 +159,110 @@ def download(url: str) -> bytes:
     return data
 
 
+def ensure_mihomo() -> str:
+    """Return a path to a usable mihomo binary, downloading it if needed."""
+    env_bin = os.environ.get("MIHOMO_BIN")
+    if env_bin and Path(env_bin).is_file() and os.access(env_bin, os.X_OK):
+        return env_bin
+    found = shutil.which("mihomo")
+    if found:
+        return found
+
+    tools_dir = REPO_ROOT / ".tools"
+    local_bin = tools_dir / "mihomo"
+    if local_bin.is_file() and os.access(local_bin, os.X_OK):
+        return str(local_bin)
+
+    system = platform.system().lower()
+    machine = platform.machine().lower()
+    arch = {"x86_64": "amd64", "amd64": "amd64", "aarch64": "arm64", "arm64": "arm64"}.get(machine)
+    if arch is None:
+        raise RuntimeError(f"unsupported architecture: {machine}")
+    if system not in ("linux", "darwin"):
+        raise RuntimeError(f"unsupported OS: {system}")
+
+    asset = f"mihomo-{system}-{arch}-{MIHOMO_VERSION}.gz"
+    url = f"https://github.com/MetaCubeX/mihomo/releases/download/{MIHOMO_VERSION}/{asset}"
+    print(f"-> downloading mihomo ({asset})")
+    tools_dir.mkdir(parents=True, exist_ok=True)
+    raw = download(url)
+    local_bin.write_bytes(gzip.decompress(raw))
+    local_bin.chmod(0o755)
+    return str(local_bin)
+
+
+def convert_ruleset(mihomo: str, behavior: str, fmt: str, src: Path, dst: Path) -> None:
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(
+        [mihomo, "convert-ruleset", behavior, fmt, str(src), str(dst)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def process_set(mihomo: str, item: dict[str, str]) -> None:
+    text_path = REPO_ROOT / item["text"]
+    mrs_path = REPO_ROOT / item["mrs"]
+    behavior = item["behavior"]
+
+    if "text_url" in item:
+        print(f"-> text  {item['text_url']}")
+        text_path.parent.mkdir(parents=True, exist_ok=True)
+        text_path.write_bytes(download(item["text_url"]))
+    else:
+        # Decompile upstream .mrs into readable text, then recompile from it.
+        print(f"-> mrs   {item['mrs_url']} (decompile)")
+        with tempfile.NamedTemporaryFile(suffix=".mrs", delete=False) as tmp:
+            tmp.write(download(item["mrs_url"]))
+            tmp_path = Path(tmp.name)
+        try:
+            convert_ruleset(mihomo, behavior, "mrs", tmp_path, text_path)
+        finally:
+            tmp_path.unlink(missing_ok=True)
+
+    convert_ruleset(mihomo, behavior, item["text_format"], text_path, mrs_path)
+    print(f"   built {item['mrs']} ({text_path.stat().st_size} B text)")
+
+
 def main() -> int:
-    repo_root = Path(__file__).resolve().parent.parent
     failures: list[str] = []
 
-    for url, rel_path in SOURCES:
-        dest = repo_root / rel_path
-        print(f"-> {url}")
+    mihomo = ensure_mihomo()
+    print(f"mihomo: {mihomo}\n")
+
+    for item in SETS:
+        label = item.get("text_url") or item.get("mrs_url") or item["mrs"]
+        try:
+            process_set(mihomo, item)
+        except subprocess.CalledProcessError as e:  # noqa: PERF203
+            print(f"   [ERROR] convert-ruleset failed: {e.stderr or e}")
+            failures.append(label)
+        except Exception as e:  # noqa: BLE001 - report and continue
+            print(f"   [ERROR] {e}")
+            failures.append(label)
+
+    for url, rel_path in PLAIN:
+        dest = REPO_ROOT / rel_path
+        print(f"-> plain {url}")
         try:
             data = download(url)
-        except Exception as e:  # noqa: BLE001 - report and continue
+        except Exception as e:  # noqa: BLE001
             print(f"   [ERROR] {e}")
             failures.append(url)
             continue
-
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_bytes(data)
         print(f"   saved {len(data)} bytes -> {rel_path}")
 
+    total = len(SETS) + len(PLAIN)
     if failures:
-        print(f"\nFailed to download {len(failures)} source(s):", file=sys.stderr)
-        for url in failures:
-            print(f"  - {url}", file=sys.stderr)
+        print(f"\nFailed on {len(failures)} source(s):", file=sys.stderr)
+        for f in failures:
+            print(f"  - {f}", file=sys.stderr)
         return 1
 
-    print(f"\nDone. Mirrored {len(SOURCES)} file(s).")
+    print(f"\nDone. Processed {total} source(s) ({len(SETS)} built, {len(PLAIN)} plain).")
     return 0
 
 
