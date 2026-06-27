@@ -152,7 +152,7 @@ PLAIN: list[tuple[str, str]] = [
      "rules/domains/category-ru-legacy.txt"),
     # NB: кастомные YAML НЕ зеркалятся — они ведутся вручную прямо в этом репозитории
     # и нигде в апстриме отсутствуют (лежат в rules/custom/):
-    #   rules/custom/ai.yaml, games-launchers.yaml, games-proxy-rules.yaml, wine.yaml
+    #   rules/custom/ai-process.yaml, games-launchers.yaml, games-proxy-rules.yaml, wine.yaml
 ]
 
 

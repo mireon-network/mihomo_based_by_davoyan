@@ -295,7 +295,6 @@ proxy-groups:
       - 🇫🇮 Финляндия
       - 🇩🇪 Германия
       - 🇫🇷 Франция
-      - 🇷🇺 Без VPN
 
   - name: 🤖 ИИ
     icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Bot.png
@@ -566,14 +565,14 @@ rule-providers:
     path: ./rule-sets/ru-apps.yaml
 
   # --- Категории выбора (RoscomVPN / mihomo_routing) ---
-  roscomvpn-ai:
+  ai-process-custom:
     type: http
     proxy: PROXY
     interval: 86400
     behavior: classical
     format: yaml
-    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/custom/ai.yaml
-    path: ./rule-sets/roscomvpn-ai.yaml
+    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/custom/ai-process.yaml
+    path: ./rule-sets/ai-process-custom.yaml
   games:
     type: http
     proxy: PROXY
@@ -859,7 +858,7 @@ rules:
   - PROCESS-NAME-REGEX,(?i).*vesktop.*,💬 Discord
 
   # 🤖 ИИ (раньше блокового списка: чтобы домены/процессы ИИ шли в свой селектор)
-  - RULE-SET,roscomvpn-ai,🤖 ИИ # OpenAI, Claude, Gemini, Copilot, десктоп/мобайл процессы
+  - RULE-SET,ai-process-custom,🤖 ИИ # Ручные PROCESS-NAME правила (десктоп/мобайл приложения ИИ)
   - RULE-SET,ai,🤖 ИИ # Нейросети (metacubex category-ai-!cn)
   - RULE-SET,google-deepmind,🤖 ИИ # Google Gemini и AI Studio
 
