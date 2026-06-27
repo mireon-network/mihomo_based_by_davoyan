@@ -46,6 +46,7 @@ sniffer:
     - 127.0.0.0/8
     - 169.254.0.0/16
     - 172.16.0.0/12
+    - 198.18.0.0/15 # fake-ip диапазон: НЕ сниффим его, иначе ломается встроенное переразрешение fake-ip→реальный IP для DIRECT
     - 192.0.0.0/24
     - 192.0.2.0/24
     - 192.88.99.0/24
@@ -145,7 +146,6 @@ dns:
     - https://77.88.8.8/dns-query#DIRECT # Yandex DNS
     - https://8.8.8.8/dns-query#DIRECT # Google DNS
     - 77.88.8.8#DIRECT
-    - system
   nameserver:
     # Сервер по умолчанию: всё неопознанное идёт напрямую (MATCH,DIRECT)
     - https://8.8.8.8/dns-query#DIRECT
