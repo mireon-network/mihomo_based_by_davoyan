@@ -40,6 +40,33 @@ def transform_keyword(line: str) -> str | None:
     return "+." + s
 
 
+def add_domains_from_text(text: str, ru_domains: set[str]) -> None:
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+
+        # 1) keyword:
+        kw = transform_keyword(line)
+        if kw is not None:
+            ru_domains.add(kw)
+            continue
+
+        # 2) domain/host/full
+        for prefix in ("domain:", "host:", "full:"):
+            if line.startswith(prefix):
+                line = line[len(prefix):]
+
+        if line.startswith("+."):
+            line = line[2:]
+
+        line = line.strip()
+        if not line:
+            continue
+
+        ru_domains.add(line)
+
+
 def main():
     base = Path(__file__).parent
 
@@ -61,7 +88,6 @@ def main():
         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-travel-ru.list",
         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-ecommerce-ru.list",
         "https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/category-retail-ru.list",
-        "https://raw.githubusercontent.com/mireon-network/mihomo_based_by_davoyan/main/rules/domains/category-ru-legacy.txt",
     ]
 
     ru_domains = set([
@@ -92,30 +118,16 @@ def main():
             sys.exit(1)
             return
 
-        for line in resp.text.splitlines():
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
+        add_domains_from_text(resp.text, ru_domains)
 
-            # 1) keyword:
-            kw = transform_keyword(line)
-            if kw is not None:
-                ru_domains.add(kw)
-                continue
-
-            # 2) domain/host/full
-            for prefix in ("domain:", "host:", "full:"):
-                if line.startswith(prefix):
-                    line = line[len(prefix):]
-
-            if line.startswith("+."):
-                line = line[2:]
-
-            line = line.strip()
-            if not line:
-                continue
-
-            ru_domains.add(line)
+    # legacy-список читаем локально из репозитория (зеркалится из апстрима Davoyan
+    # через scripts/mirror-external.py -> rules/domains/category-ru-legacy.txt)
+    legacy_file = base.parent / "rules" / "domains" / "category-ru-legacy.txt"
+    if legacy_file.is_file():
+        print("Читаю локально:", legacy_file)
+        add_domains_from_text(legacy_file.read_text(encoding="utf-8"), ru_domains)
+    else:
+        print(f"⚠️  Нет {legacy_file} — пропускаю legacy-список")
 
     ru_domains_filtered = sorted(remove_overlaps(ru_domains))
 

@@ -2,3 +2,6 @@ payload:
   # Домены и процессы игр — всегда PROXY (доступ без VPN часто недоступен или ломается)
   - DOMAIN-SUFFIX,easebar.com,PROXY
   - DOMAIN-SUFFIX,deadorbit.net,PROXY
+
+  # IP игровых сервисов — всегда PROXY (резолв не нужен, матчим по IP назначения)
+  - IP-CIDR,172.232.25.131/32,PROXY,no-resolve # IP для чата Warframe (Пример)

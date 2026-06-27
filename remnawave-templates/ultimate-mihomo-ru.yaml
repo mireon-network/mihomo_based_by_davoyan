@@ -1,24 +1,3 @@
-#-------------------------------------------------------------------------------------------------------------------
-# Ультимативный конфиг с кучей селекторов (Недоступные сайты, YouTube, Discord, Telegram)
-# Конфиг в первую очередь предназначен для использования внутри России.
-# Может быть немного перегружен, а также содержать ошибки.
-# Автор не является всезнающим экспертом, используйте конфиг только для тестирования и в качестве примера. Редактируйте под себя.
-# Внимательно изучите все комментарии. В основном ориентируйтесь на основную документацию Mihomo —
-# https://wiki.metacubex.one/ru/config/
-
-# В шаблоне не используются мосты и цепочки прокси, только прямые подключения.
-# В шаблоне не используются прокси-группы «Самый быстрый».
-#
-# В шаблоне используется прокси-группа «Любой доступный сервер». Внутри группы — хосты в случайном порядке.
-# По умолчанию выбирается первый из списка, если он недоступен, выбирается второй и т.д.
-# Для прокси-группы «RU сайты» используется только один прокси — «Без ВПН» (т.е. DIRECT).
-#
-# Списки доменов re:filter — для прокси-группы «Недоступные сайты». Подробнее смотрите в rules.
-
-# Большое спасибо Legiz, hydraponique, чьи списки используются для правил.
-# Также спасибо за пояснения и идеи для конфигов. Отдельное спасибо сообществу Remnawave и её разработчику.
-#-------------------------------------------------------------------------------------------------------------------
-
 remnawave:
   includeHiddenHosts: true # нужно для балансировщика по странам (скрытые хосты gateway_<провайдер>_<код>)
 
@@ -120,6 +99,7 @@ dns:
   fake-ip-range: 198.18.0.1/16
   fake-ip-filter:
     - rule-set:geosite-private
+    - rule-set:geosite-private-custom
     - "*.lan"
     - "*.msftncsi.com"
     - "stun.*.*.*"
@@ -172,7 +152,7 @@ dns:
     - https://94.140.14.14/dns-query#DIRECT
   nameserver-policy:
     # Приватные домены через системный ДНС
-    rule-set:geosite-private:
+    rule-set:geosite-private,geosite-private-custom:
       - system
     # Блокировка рекламы (опционально)
     rule-set:oisd_big:
@@ -212,7 +192,6 @@ proxies:
 proxy-groups:
   # ============================================================
   # БАЛАНСИРОВЩИК СЕРВЕРОВ
-  # Перенесён из template_remnawave.yaml (RoscomVPN).
   # Сервера берутся из скрытых хостов Remnawave вида gateway_<провайдер>_<код страны>:
   #   🇫🇮 = 101, 🇩🇪 = 102, 🇫🇷 = 1004
   # Внутри страны — load-balance (sticky-sessions) между всеми провайдерами.
@@ -402,6 +381,22 @@ rule-providers:
     format: mrs
     url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/metacubex/geosite/private.mrs
     path: ./rule-sets/geosite-private.mrs
+  geosite-private-custom:
+    type: http
+    proxy: PROXY
+    interval: 86400
+    behavior: domain
+    format: mrs
+    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/custom/geosite/private.mrs
+    path: ./rule-sets/geosite-private-custom.mrs
+  geoip-private-custom:
+    type: http
+    proxy: PROXY
+    interval: 86400
+    behavior: ipcidr
+    format: mrs
+    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/custom/geoip/private.mrs
+    path: ./rule-sets/geoip-private-custom.mrs
   discord_domains:
     type: http
     proxy: PROXY
@@ -546,7 +541,7 @@ rule-providers:
     interval: 86400
     behavior: classical
     format: yaml
-    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/roscomvpn/ai.yaml
+    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/custom/ai.yaml
     path: ./rule-sets/roscomvpn-ai.yaml
   games:
     type: http
@@ -556,13 +551,21 @@ rule-providers:
     format: yaml
     url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/roscomvpn/games.yaml
     path: ./rule-sets/games.yaml
+  games-custom:
+    type: http
+    proxy: PROXY
+    interval: 86400
+    behavior: classical
+    format: yaml
+    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/custom/games.yaml
+    path: ./rule-sets/games-custom.yaml
   games-launchers:
     type: http
     proxy: PROXY
     interval: 86400
     behavior: classical
     format: yaml
-    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/roscomvpn/games-launchers.yaml
+    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/custom/games-launchers.yaml
     path: ./rule-sets/games-launchers.yaml
   games-proxy-rules:
     type: http
@@ -570,7 +573,7 @@ rule-providers:
     interval: 86400
     behavior: classical
     format: yaml
-    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/roscomvpn/games-proxy-rules.yaml
+    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/custom/games-proxy-rules.yaml
     path: ./rule-sets/games-proxy-rules.yaml
   wine:
     type: http
@@ -578,7 +581,7 @@ rule-providers:
     interval: 86400
     behavior: classical
     format: yaml
-    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/roscomvpn/wine.yaml
+    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/custom/wine.yaml
     path: ./rule-sets/wine.yaml
   steam:
     type: http
@@ -758,7 +761,9 @@ rules:
 
   # Локальную сеть в директ
   - RULE-SET,geoip-private,DIRECT,no-resolve
+  - RULE-SET,geoip-private-custom,DIRECT,no-resolve # кастомные приватные IP (rules/custom/geoip/private)
   - RULE-SET,geosite-private,DIRECT
+  - RULE-SET,geosite-private-custom,DIRECT # кастомные приватные домены (rules/custom/geosite/private)
 
   # ВПН и всякие Anydesk, Rustdesk, Teamviewer в директ (опционально)
   - PROCESS-NAME-REGEX,(?i).*tailscale.*,DIRECT
@@ -837,6 +842,7 @@ rules:
   - RULE-SET,steam,🎮 Игры
   - RULE-SET,faceit,🎮 Игры
   - RULE-SET,games,🎮 Игры # общая игровая категория (домены/процессы)
+  - RULE-SET,games-custom,🎮 Игры # GeForce NOW + ручные правила (rules/custom/games.yaml)
   - RULE-SET,wine,🍷 Wine # Windows-софт/игры на Linux (Wine/Proton)
 
   # Заблокированные / недоступные из РФ домены → PROXY

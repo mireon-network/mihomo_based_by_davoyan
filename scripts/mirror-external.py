@@ -21,6 +21,7 @@ Run by the ``mirror-external`` workflow on a schedule. Needs the ``mihomo`` bina
 from __future__ import annotations
 
 import gzip
+import json
 import os
 import platform
 import shutil
@@ -32,7 +33,12 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-MIHOMO_VERSION = os.environ.get("MIHOMO_VERSION", "v1.19.25")
+# Версия mihomo для скачивания. По умолчанию "latest" — берём последний релиз
+# с GitHub (как и workflow-файлы). Можно запинить через $MIHOMO_VERSION=vX.Y.Z.
+MIHOMO_VERSION = os.environ.get("MIHOMO_VERSION", "latest")
+
+# Фолбэк, если GitHub API недоступен при разрешении "latest".
+MIHOMO_VERSION_FALLBACK = "v1.19.25"
 
 # Sets that produce a .mrs. Each entry:
 #   mrs          — destination .mrs (relative to repo root); referenced by the template
@@ -141,9 +147,12 @@ PLAIN: list[tuple[str, str]] = [
      "rules/itdoginfo/inside-clashx.lst"),
     ("https://raw.githubusercontent.com/roscomvpn/custom-category/release/mihomo/games.yaml",
      "rules/roscomvpn/games.yaml"),
+    # legacy-список RU-доменов из апстрима Davoyan (используется как источник в category-ru.py)
+    ("https://raw.githubusercontent.com/Davoyan/mihomo-rule-sets/main/domains/category-ru-legacy.txt",
+     "rules/domains/category-ru-legacy.txt"),
     # NB: кастомные YAML НЕ зеркалятся — они ведутся вручную прямо в этом репозитории
-    # и нигде в апстриме отсутствуют:
-    #   rules/roscomvpn/ai.yaml, games-launchers.yaml, games-proxy-rules.yaml, wine.yaml
+    # и нигде в апстриме отсутствуют (лежат в rules/custom/):
+    #   rules/custom/ai.yaml, games-launchers.yaml, games-proxy-rules.yaml, wine.yaml
 ]
 
 
@@ -157,6 +166,22 @@ def download(url: str) -> bytes:
     if not data:
         raise RuntimeError("empty response")
     return data
+
+
+def resolve_mihomo_version() -> str:
+    """Вернуть тег версии mihomo. "latest" -> последний релиз с GitHub API."""
+    if MIHOMO_VERSION != "latest":
+        return MIHOMO_VERSION
+    try:
+        data = json.loads(
+            download("https://api.github.com/repos/MetaCubeX/mihomo/releases/latest")
+        )
+        tag = data.get("tag_name")
+        if tag:
+            return tag
+    except Exception as e:  # noqa: BLE001 - сеть/лимиты API: падаем на фолбэк
+        print(f"-> latest mihomo lookup failed ({e}); fallback {MIHOMO_VERSION_FALLBACK}")
+    return MIHOMO_VERSION_FALLBACK
 
 
 def ensure_mihomo() -> str:
@@ -181,8 +206,9 @@ def ensure_mihomo() -> str:
     if system not in ("linux", "darwin"):
         raise RuntimeError(f"unsupported OS: {system}")
 
-    asset = f"mihomo-{system}-{arch}-{MIHOMO_VERSION}.gz"
-    url = f"https://github.com/MetaCubeX/mihomo/releases/download/{MIHOMO_VERSION}/{asset}"
+    version = resolve_mihomo_version()
+    asset = f"mihomo-{system}-{arch}-{version}.gz"
+    url = f"https://github.com/MetaCubeX/mihomo/releases/download/{version}/{asset}"
     print(f"-> downloading mihomo ({asset})")
     tools_dir.mkdir(parents=True, exist_ok=True)
     raw = download(url)

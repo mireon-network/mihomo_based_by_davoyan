@@ -1,0 +1,11 @@
+# Кастомные приватные/локальные домены → DIRECT
+# Дополняет metacubex geosite-private (не заменяет его).
+# Компилируется в private.mrs: mihomo convert-ruleset domain text private.list private.mrs
+# Формат (как у metacubex .list):
+#   nas.home          — точный домен
+#   +.home.lab        — домен и все поддомены
++.home.lab
++.d-net.pro
++.id-network.ru
++.sonicpro.ru
++.fonmix.ru
