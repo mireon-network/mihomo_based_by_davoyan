@@ -352,6 +352,25 @@ proxy-groups:
     proxies:
       - 🛡️ VPN
 
+  # ============================================================
+  # GLOBAL — явное определение, чтобы mihomo не подмешивал в него
+  # все сервисные узлы (gateway_*, fallback и т.д.).
+  # При наличии группы с именем GLOBAL ядро использует её вместо
+  # авто-сгенерированной, а include-proxies: false не даёт Remnawave
+  # добавить туда сырые прокси из подписки.
+  # ============================================================
+  - name: GLOBAL
+    remnawave:
+      include-proxies: false
+    type: select
+    include-all-proxies: false
+    include-all-providers: false
+    proxies:
+      - ⚡️ Автовыбор
+      - 🇫🇮 Финляндия
+      - 🇩🇪 Германия
+      - 🇫🇷 Франция
+      - 🇷🇺 Без VPN
 rule-providers:
   geosite-ru:
     type: http
