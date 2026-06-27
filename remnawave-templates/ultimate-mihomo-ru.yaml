@@ -276,6 +276,8 @@ proxy-groups:
   - name: ▶️ YouTube
     icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/YouTube.png
     type: select
+    remnawave:
+      include-proxies: false
     proxies:
       - 🛡️ VPN
       - 🇫🇮 Финляндия
@@ -286,6 +288,8 @@ proxy-groups:
   - name: 💬 Discord
     icon: https://cdn.jsdelivr.net/gh/remnawave/templates@main/icons/Discord.png
     type: select
+    remnawave:
+      include-proxies: false
     proxies:
       - 🛡️ VPN
       - 🇫🇮 Финляндия
@@ -296,6 +300,8 @@ proxy-groups:
   - name: 🤖 ИИ
     icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Bot.png
     type: select
+    remnawave:
+      include-proxies: false
     proxies:
       - 🛡️ VPN
       - 🇫🇮 Финляндия
@@ -305,6 +311,8 @@ proxy-groups:
   - name: 🎮 Игры
     icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Game.png
     type: select
+    remnawave:
+      include-proxies: false
     proxies:
       - 🇷🇺 Без VPN # по умолчанию напрямую, можно переключить
       - 🛡️ VPN
@@ -315,6 +323,8 @@ proxy-groups:
   - name: 🎮 Лаунчеры
     icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Download.png
     type: select
+    remnawave:
+      include-proxies: false
     proxies:
       - 🇷🇺 Без VPN # по умолчанию напрямую, можно переключить
       - 🛡️ VPN
@@ -325,6 +335,8 @@ proxy-groups:
   - name: 🍷 Wine
     icon: https://api.iconify.design/mdi/glass-wine.svg?color=%23B11226&width=128&height=128
     type: select
+    remnawave:
+      include-proxies: false
     proxies:
       - 🇷🇺 Без VPN # по умолчанию напрямую, можно переключить
       - 🛡️ VPN
