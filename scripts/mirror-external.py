@@ -63,11 +63,9 @@ SETS: list[dict[str, str]] = [
             "category-porn",
             "private",
             "discord",
-            "speedtest",
             "category-remote-control",
             "youtube",
             "google-deepmind",
-            "telegram",
         )
     ],
     *[
@@ -78,7 +76,7 @@ SETS: list[dict[str, str]] = [
             "text_format": "text",
             "text_url": f"https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/{name}.list",
         }
-        for name in ("telegram", "cloudflare", "private")
+        for name in ("cloudflare", "private")
     ],
 
     # --- legiz-ru: upstream ships .yaml next to .mrs ---
@@ -134,6 +132,19 @@ SETS: list[dict[str, str]] = [
             ("steam", "steam"),
         )
     ],
+]
+
+# Sources in v2ray/xray geosite text format (``domain:``/``full:``/``host:``/
+# ``keyword:`` prefixes). mihomo's ``convert-ruleset domain text`` does NOT accept
+# that format, so we transform each entry into mihomo's domain .list syntax first
+# (``domain:``/``host:`` -> ``+.X`` suffix, ``full:`` -> ``X`` exact), commit the
+# readable .list for transparency, then compile the .mrs.
+V2RAY_DOMAIN_SETS: list[dict[str, str]] = [
+    {
+        "mrs": "rules/davoyan/category-ip-geo-detect.mrs",
+        "text": "rules/davoyan/category-ip-geo-detect.list",
+        "src_url": "https://raw.githubusercontent.com/Davoyan/xray-routing/main/domains/category-ip-geo-detect.txt",
+    },
 ]
 
 # Sources that are already plain text/yaml and consumed as-is by the template.
@@ -227,6 +238,66 @@ def convert_ruleset(mihomo: str, behavior: str, fmt: str, src: Path, dst: Path) 
     )
 
 
+def v2ray_domains_to_mihomo(text: str) -> list[str]:
+    """v2ray/xray geosite text -> mihomo domain .list entries (dedup, stable order).
+
+    ``domain:X`` / ``host:X`` -> ``+.X`` (X и все поддомены)
+    ``full:X``                -> ``X``   (точное совпадение)
+    ``keyword:X``             -> пропуск (в domain-behavior нет подстрочного match)
+    """
+    seen: set[str] = set()
+    out: list[str] = []
+    skipped_keywords = 0
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        # отрезаем возможный inline-комментарий/атрибут (v2ray: "domain:x @attr")
+        line = line.split()[0]
+
+        if line.startswith("keyword:"):
+            skipped_keywords += 1
+            continue
+
+        if line.startswith("full:"):
+            domain = line[len("full:"):].strip().lstrip(".")
+            entry = domain
+        else:
+            for prefix in ("domain:", "host:"):
+                if line.startswith(prefix):
+                    line = line[len(prefix):]
+                    break
+            domain = line.strip().lstrip(".")
+            if domain.startswith("+."):
+                domain = domain[2:]
+            entry = "+." + domain if domain else ""
+
+        if not entry or entry in seen:
+            continue
+        seen.add(entry)
+        out.append(entry)
+
+    if skipped_keywords:
+        print(f"   (пропущено keyword:-записей: {skipped_keywords})")
+    return out
+
+
+def process_v2ray_domain_set(mihomo: str, item: dict[str, str]) -> None:
+    text_path = REPO_ROOT / item["text"]
+    mrs_path = REPO_ROOT / item["mrs"]
+
+    print(f"-> v2ray {item['src_url']}")
+    raw = download(item["src_url"]).decode("utf-8")
+    entries = v2ray_domains_to_mihomo(raw)
+    if not entries:
+        raise RuntimeError("после трансформации не осталось доменов")
+
+    text_path.parent.mkdir(parents=True, exist_ok=True)
+    text_path.write_text("\n".join(entries) + "\n", encoding="utf-8")
+    convert_ruleset(mihomo, "domain", "text", text_path, mrs_path)
+    print(f"   built {item['mrs']} ({len(entries)} доменов)")
+
+
 def process_set(mihomo: str, item: dict[str, str]) -> None:
     text_path = REPO_ROOT / item["text"]
     mrs_path = REPO_ROOT / item["mrs"]
@@ -268,6 +339,17 @@ def main() -> int:
             print(f"   [ERROR] {e}")
             failures.append(label)
 
+    for item in V2RAY_DOMAIN_SETS:
+        label = item.get("src_url") or item["mrs"]
+        try:
+            process_v2ray_domain_set(mihomo, item)
+        except subprocess.CalledProcessError as e:  # noqa: PERF203
+            print(f"   [ERROR] convert-ruleset failed: {e.stderr or e}")
+            failures.append(label)
+        except Exception as e:  # noqa: BLE001 - report and continue
+            print(f"   [ERROR] {e}")
+            failures.append(label)
+
     for url, rel_path in PLAIN:
         dest = REPO_ROOT / rel_path
         print(f"-> plain {url}")
@@ -281,14 +363,17 @@ def main() -> int:
         dest.write_bytes(data)
         print(f"   saved {len(data)} bytes -> {rel_path}")
 
-    total = len(SETS) + len(PLAIN)
+    total = len(SETS) + len(V2RAY_DOMAIN_SETS) + len(PLAIN)
     if failures:
         print(f"\nFailed on {len(failures)} source(s):", file=sys.stderr)
         for f in failures:
             print(f"  - {f}", file=sys.stderr)
         return 1
 
-    print(f"\nDone. Processed {total} source(s) ({len(SETS)} built, {len(PLAIN)} plain).")
+    print(
+        f"\nDone. Processed {total} source(s) "
+        f"({len(SETS)} built, {len(V2RAY_DOMAIN_SETS)} v2ray, {len(PLAIN)} plain)."
+    )
     return 0
 
 

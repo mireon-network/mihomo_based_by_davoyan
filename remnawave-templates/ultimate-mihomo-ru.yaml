@@ -147,40 +147,31 @@ dns:
     - https://8.8.8.8/dns-query#DIRECT # Google DNS
     - 77.88.8.8#DIRECT
   nameserver:
-    # Сервер по умолчанию: всё неопознанное идёт напрямую (MATCH,DIRECT)
-    - https://8.8.8.8/dns-query#DIRECT
-    - https://94.140.14.14/dns-query#DIRECT
+    # Дефолт для ВСЕГО — через прокси (#PROXY): чистый резолв без подмены DNS в РФ.
+    # Заблокированные домены резолвятся корректно автоматически, без отдельных
+    # rule-set-политик. То, что правила увели в DIRECT, резолвит direct-nameserver.
+    - https://8.8.8.8/dns-query#PROXY
+    - https://94.140.14.14/dns-query#PROXY
   nameserver-policy:
     # Приватные домены через системный ДНС
     rule-set:geosite-private,geosite-private-custom:
       - system
-    # Блокировка рекламы (опционально)
-    rule-set:oisd_big:
-      - rcode://success
-    # DNS для сайтов с файлами правил
-    raw.githubusercontent.com,cdn.jsdelivr.net,github.com:
+    # Наш сервис на termix.https443.net попал в oisd-блоклист (+.https443.net).
+    # Стоит ВЫШЕ oisd_big → перебивает блокировку (policy матчится сверху вниз).
+    "+.termix.https443.net":
       - https://8.8.8.8/dns-query#PROXY
       - https://94.140.14.14/dns-query#PROXY
-    # DNS для заблоченных ресурсов, DNS запросы будут идти через то, что выбрано в "Недоступные сайты"
-    rule-set:ru-inside,refilter_domains,ru-inline-banned,category-porn,ai,google-deepmind,speedtest-net:
-      - https://1.1.1.1/dns-query#PROXY # Cloudflare DNS
-      - https://8.8.8.8/dns-query#PROXY
-    # DNS для Discord, DNS запросы будут идти через то, что выбрано в "Discord"
+    # DNS-блокировка рекламы (возвращаем пустой успешный ответ)
+    rule-set:oisd_big:
+      - rcode://success
+    # Discord/YouTube — DNS резолвится через ту же ноду, что и трафик категории
+    # (аффинити DNS↔выходной узел: корректный CDN/гео).
     rule-set:discord_domains:
       - https://8.8.8.8/dns-query#💬 Discord
       - https://94.140.14.14/dns-query#💬 Discord
-    # DNS для доменов Youtube, DNS запросы будут идти через то, что выбрано в "Youtube"
     rule-set:youtube:
       - https://8.8.8.8/dns-query#▶️ YouTube
       - https://94.140.14.14/dns-query#▶️ YouTube
-    # DNS для доменов Telegram, DNS запросы будут идти через VPN
-    rule-set:telegram-domains,additional-telegram-domains:
-      - https://8.8.8.8/dns-query#PROXY
-      - https://94.140.14.14/dns-query#PROXY
-    # DNS для RU сайтов — резолвим напрямую (RU всегда идёт в DIRECT)
-    rule-set:ru-inline,geosite-ru:
-      - https://77.88.8.8/dns-query#DIRECT
-      - https://8.8.8.8/dns-query#DIRECT
 
 proxies:
   - name: "🇷🇺 Без VPN"
@@ -283,7 +274,6 @@ proxy-groups:
       - 🇫🇮 Финляндия
       - 🇩🇪 Германия
       - 🇫🇷 Франция
-      - 🇷🇺 Без VPN
 
   - name: 💬 Discord
     icon: https://cdn.jsdelivr.net/gh/remnawave/templates@main/icons/Discord.png
@@ -379,6 +369,16 @@ rule-providers:
     format: mrs
     url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/category-ru.mrs
     path: ./rule-sets/geosite-ru.mrs
+  category-ip-geo-detect:
+    # Сервисы определения IP/геолокации (Davoyan/xray-routing) — идут DIRECT,
+    # чтобы детекторы видели реальный IP, а не адрес VPN.
+    type: http
+    proxy: PROXY
+    interval: 86400
+    behavior: domain
+    format: mrs
+    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/davoyan/category-ip-geo-detect.mrs
+    path: ./rule-sets/category-ip-geo-detect.mrs
   ai:
     type: http
     proxy: PROXY
@@ -435,14 +435,6 @@ rule-providers:
     format: mrs
     url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/metacubex/geosite/discord.mrs
     path: ./rule-sets/discord_domains.mrs
-  speedtest-net:
-    type: http
-    proxy: PROXY
-    interval: 86400
-    behavior: domain
-    format: mrs
-    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/metacubex/geosite/speedtest.mrs
-    path: ./rule-sets/speedtest-net.mrs
   remote-control:
     type: http
     proxy: PROXY
@@ -483,38 +475,6 @@ rule-providers:
     format: mrs
     url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/metacubex/geosite/google-deepmind.mrs
     path: ./rule-sets/google-deepmind.mrs
-  telegram-ips:
-    type: http
-    proxy: PROXY
-    interval: 86400
-    behavior: ipcidr
-    format: mrs
-    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/metacubex/geoip/telegram.mrs
-    path: ./rule-sets/telegram-ips.mrs
-  telegram-domains:
-    type: http
-    proxy: PROXY
-    interval: 86400
-    behavior: domain
-    format: mrs
-    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/metacubex/geosite/telegram.mrs
-    path: ./rule-sets/telegram-domains.mrs
-  additional-telegram-ips:
-    type: http
-    proxy: PROXY
-    interval: 86400
-    behavior: classical
-    format: yaml
-    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/domains/additional-telegram-ips.yaml
-    path: ./rule-sets/additional-telegram-ips.yaml
-  additional-telegram-domains:
-    type: http
-    proxy: PROXY
-    interval: 86400
-    behavior: classical
-    format: yaml
-    url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/domains/additional-telegram-domains.yaml
-    path: ./rule-sets/additional-telegram-domains.yaml
   oisd_big:
     type: http
     proxy: PROXY
@@ -677,11 +637,6 @@ rule-providers:
     format: mrs
     url: https://cdn.jsdelivr.net/gh/mireon-network/mihomo_based_by_davoyan@main/rules/metacubex/geoip/cloudflare.mrs
     path: ./rule-sets/cloudflare-ips.mrs
-  inline-blocked-ips:
-    type: inline
-    payload:
-      - IP-CIDR,172.232.25.131/32 #IP для чата Warframe (Пример)
-    behavior: classical
   geoip-private:
     type: inline
     payload:
@@ -820,34 +775,15 @@ rules:
   # Делаем REJECT QUIC
   - RULE-SET,quic,REJECT
 
-  # Определялки IP пускаем в прокси, чтобы пользователь видел
-  - DOMAIN,flclashx.app,PROXY
-  - DOMAIN,ipwho.is,PROXY
-  - DOMAIN,api.myip.com,PROXY
-  - DOMAIN,ipapi.co,PROXY
-  - DOMAIN,ident.me,PROXY
-  - DOMAIN,ip-api.com,PROXY
-  - DOMAIN,ipinfo.io,PROXY
-  - DOMAIN,api.ip.sb,PROXY
-  - DOMAIN,2ip.io,PROXY
-  - DOMAIN,2ipcore.com,PROXY
+  # Сервисы определения IP/геолокации → DIRECT, чтобы детекторы видели
+  # реальный IP, а не адрес VPN (список Davoyan/xray-routing).
+  - RULE-SET,category-ip-geo-detect,DIRECT
 
   # -----
 
   # ▶️ YouTube
   - RULE-SET,youtube,▶️ YouTube
   - PROCESS-NAME-REGEX,(?i).*youtube.*,▶️ YouTube
-
-  # Telegram — всегда через VPN (отдельной категории нет)
-  - RULE-SET,telegram-ips,PROXY
-  - RULE-SET,telegram-domains,PROXY
-  - RULE-SET,additional-telegram-domains,PROXY
-  - RULE-SET,additional-telegram-ips,PROXY
-  - PROCESS-NAME-REGEX,(?i).*ayugram.*,PROXY
-  - PROCESS-NAME-REGEX,(?i).*telegram.*,PROXY
-  - PROCESS-NAME-REGEX,(?i).*nekogram.*,PROXY
-  - PROCESS-NAME-REGEX,(?i).*nagram.*,PROXY
-  - PROCESS-NAME-REGEX,(?i).*nekox.*,PROXY
 
   # 💬 Discord
   - AND,((RULE-SET,cloudflare-ips),(NETWORK,udp),(DST-PORT,19200-19500)),💬 Discord
@@ -879,9 +815,7 @@ rules:
   - RULE-SET,ru-inside,PROXY # ITDog списки доменов недоступные из РФ
   - RULE-SET,refilter_domains,PROXY # Re:Filter списки доменов недоступные из РФ
   - RULE-SET,ru-inline-banned,PROXY # Домены набитые вручную (смотрите выше)
-  - RULE-SET,inline-blocked-ips,PROXY # IP набитые вручную (смотрите выше)
-  - RULE-SET,category-porn,PROXY # Опционально
-  - RULE-SET,speedtest-net,PROXY # speedtest.net
+  - RULE-SET,category-porn,PROXY # Опционально (содержит .ru/.su → несущее: уводит заблокированное в РФ в прокси)
 
   # RU сайты → напрямую (DIRECT)
   - RULE-SET,ru-inline,DIRECT # Списки набитые вручную (смотрите выше в rule-providers)
