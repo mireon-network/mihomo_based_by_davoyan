@@ -183,7 +183,7 @@ proxy-groups:
   # ============================================================
   # БАЛАНСИРОВЩИК СЕРВЕРОВ
   # Сервера берутся из скрытых хостов Remnawave вида gateway_<провайдер>_<код страны>:
-  #   🇫🇮 = 101, 🇩🇪 = 102, 🇫🇷 = 1004
+  #   🇫🇮 = 101, 🇩🇪 = 102, 🇫🇷 = 103, 🇳🇱 = 104, 🇺🇸 = 105
   # Внутри страны — load-balance (sticky-sessions) между всеми провайдерами.
   # ⚡️ Автовыбор — url-test между странами.
   # ============================================================
@@ -197,6 +197,8 @@ proxy-groups:
       - 🇫🇮 Финляндия
       - 🇩🇪 Германия
       - 🇫🇷 Франция
+      - 🇳🇱 Нидерланды
+      - 🇺🇸 США
 
   - name: 🇫🇮 Финляндия
     type: load-balance
@@ -212,7 +214,8 @@ proxy-groups:
       include-proxies: false
     include-all: true
     filter: "(?i)^gateway_[^_]+_101$"
-
+    proxies:
+      # LEAVE THIS LINE!
   - name: 🇩🇪 Германия
     type: load-balance
     hidden: true
@@ -227,7 +230,8 @@ proxy-groups:
       include-proxies: false
     include-all: true
     filter: "(?i)^gateway_[^_]+_102$"
-
+    proxies:
+      # LEAVE THIS LINE!
   - name: 🇫🇷 Франция
     type: load-balance
     hidden: true
@@ -241,7 +245,41 @@ proxy-groups:
     remnawave:
       include-proxies: false
     include-all: true
-    filter: "(?i)^gateway_[^_]+_1004$"
+    filter: "(?i)^gateway_[^_]+_103$"
+    proxies:
+      # LEAVE THIS LINE!
+  - name: 🇳🇱 Нидерланды
+    type: load-balance
+    hidden: true
+    lazy: false
+    strategy: sticky-sessions
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    expected-status: 204
+    max-failed-times: 3
+    timeout: 3000
+    remnawave:
+      include-proxies: false
+    include-all: true
+    filter: "(?i)^gateway_[^_]+_104$"
+    proxies:
+      # LEAVE THIS LINE!
+  - name: 🇺🇸 США
+    type: load-balance
+    hidden: true
+    lazy: false
+    strategy: sticky-sessions
+    url: https://www.gstatic.com/generate_204
+    interval: 600
+    expected-status: 204
+    max-failed-times: 3
+    timeout: 3000
+    remnawave:
+      include-proxies: false
+    include-all: true
+    filter: "(?i)^gateway_[^_]+_105$"
+    proxies:
+      # LEAVE THIS LINE!
 
   - name: ⚡️ Автовыбор
     type: url-test
@@ -259,6 +297,8 @@ proxy-groups:
       - 🇫🇮 Финляндия
       - 🇩🇪 Германия
       - 🇫🇷 Франция
+      - 🇳🇱 Нидерланды
+      - 🇺🇸 США
 
   # ============================================================
   # КАТЕГОРИИ ВЫБОРА
@@ -273,6 +313,8 @@ proxy-groups:
       - 🇫🇮 Финляндия
       - 🇩🇪 Германия
       - 🇫🇷 Франция
+      - 🇳🇱 Нидерланды
+      - 🇺🇸 США
 
   - name: 💬 Discord
     icon: https://cdn.jsdelivr.net/gh/remnawave/templates@main/icons/Discord.png
@@ -284,6 +326,8 @@ proxy-groups:
       - 🇫🇮 Финляндия
       - 🇩🇪 Германия
       - 🇫🇷 Франция
+      - 🇳🇱 Нидерланды
+      - 🇺🇸 США
 
   - name: 🤖 ИИ
     icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Bot.png
@@ -295,6 +339,8 @@ proxy-groups:
       - 🇫🇮 Финляндия
       - 🇩🇪 Германия
       - 🇫🇷 Франция
+      - 🇳🇱 Нидерланды
+      - 🇺🇸 США
 
   - name: 🎮 Игры
     icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Game.png
@@ -307,6 +353,8 @@ proxy-groups:
       - 🇫🇮 Финляндия
       - 🇩🇪 Германия
       - 🇫🇷 Франция
+      - 🇳🇱 Нидерланды
+      - 🇺🇸 США
 
   - name: 🎮 Лаунчеры
     icon: https://cdn.jsdelivr.net/gh/Koolson/Qure@master/IconSet/Color/Download.png
@@ -319,6 +367,8 @@ proxy-groups:
       - 🇫🇮 Финляндия
       - 🇩🇪 Германия
       - 🇫🇷 Франция
+      - 🇳🇱 Нидерланды
+      - 🇺🇸 США
 
   - name: 🍷 Wine
     icon: https://api.iconify.design/mdi/glass-wine.svg?color=%23B11226&width=128&height=128
@@ -331,6 +381,8 @@ proxy-groups:
       - 🇫🇮 Финляндия
       - 🇩🇪 Германия
       - 🇫🇷 Франция
+      - 🇳🇱 Нидерланды
+      - 🇺🇸 США
 
   - name: PROXY
     remnawave: # Кастомное поле используемое только в Remnawave
@@ -358,6 +410,8 @@ proxy-groups:
       - 🇫🇮 Финляндия
       - 🇩🇪 Германия
       - 🇫🇷 Франция
+      - 🇳🇱 Нидерланды
+      - 🇺🇸 США
       - 🇷🇺 Без VPN
 rule-providers:
   geosite-ru:
