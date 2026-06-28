@@ -1,7 +1,11 @@
 payload:
-  # Домены и процессы игр — всегда PROXY (доступ без VPN часто недоступен или ломается)
-  - DOMAIN-SUFFIX,easebar.com,PROXY
-  - DOMAIN-SUFFIX,deadorbit.net,PROXY
+  # Игровые сервисы, которым нужен VPN (доступ без VPN часто недоступен или ломается).
+  # Категория подключается строкой RULE-SET,games-proxy-rules,PROXY — именно она
+  # задаёт выход через VPN. Это classical rule-set, поэтому действие (PROXY/VPN)
+  # здесь НЕ указывается: хвостовое действие ядро mihomo игнорирует.
+  - DOMAIN-SUFFIX,easebar.com
+  - DOMAIN-SUFFIX,deadorbit.net
 
-  # IP игровых сервисов — всегда PROXY (резолв не нужен, матчим по IP назначения)
-  - IP-CIDR,172.232.25.131/32,PROXY,no-resolve # IP для чата Warframe (Пример)
+  # IP игровых сервисов (резолв не нужен, матчим по IP назначения).
+  # no-resolve — валидный параметр classical-правила и учитывается ядром.
+  - IP-CIDR,172.232.25.131/32,no-resolve # IP для чата Warframe (Пример)

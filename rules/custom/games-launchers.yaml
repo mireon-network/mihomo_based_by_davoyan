@@ -1,126 +1,130 @@
 payload:
-  # Лаунчеры игровых платформ — только DIRECT.
-  # Чтобы P2P/загрузки (Steam, VK Play и др.) не шли через VPN и не попадали под блокировщик торрентов.
+  # Лаунчеры игровых платформ. Категория подключается строкой
+  # RULE-SET,games-launchers,🎮 Лаунчеры (по умолчанию селектор = DIRECT),
+  # чтобы P2P/загрузки (Steam, VK Play и др.) не шли через VPN и не попадали
+  # под блокировщик торрентов.
+  # NB: это classical rule-set — действие (DIRECT/PROXY) здесь НЕ указывается,
+  # его задаёт строка RULE-SET в шаблоне; хвостовое действие ядро игнорирует.
 
   # --- Steam ---
-  - PROCESS-NAME,steam.exe,DIRECT
-  - PROCESS-NAME,steamwebhelper.exe,DIRECT
-  - PROCESS-NAME,steamservice.exe,DIRECT
+  - PROCESS-NAME,steam.exe
+  - PROCESS-NAME,steamwebhelper.exe
+  - PROCESS-NAME,steamservice.exe
 
   # --- Epic Games ---
-  - PROCESS-NAME,EpicGamesLauncher.exe,DIRECT
+  - PROCESS-NAME,EpicGamesLauncher.exe
 
   # --- EA / Origin ---
-  - PROCESS-NAME,Origin.exe,DIRECT
-  - PROCESS-NAME,EADesktop.exe,DIRECT
+  - PROCESS-NAME,Origin.exe
+  - PROCESS-NAME,EADesktop.exe
 
   # --- Ubisoft Connect ---
-  - PROCESS-NAME,upc.exe,DIRECT
-  - PROCESS-NAME,UbisoftConnect.exe,DIRECT
+  - PROCESS-NAME,upc.exe
+  - PROCESS-NAME,UbisoftConnect.exe
 
   # --- GOG / Playnite ---
-  - PROCESS-NAME,GOGGalaxy.exe,DIRECT
-  - PROCESS-NAME,playnite.exe,DIRECT
+  - PROCESS-NAME,GOGGalaxy.exe
+  - PROCESS-NAME,playnite.exe
 
   # --- Blizzard / Battle.net ---
-  - PROCESS-NAME,Battle.net.exe,DIRECT
-  - PROCESS-NAME,BlizzardBrowser.exe,DIRECT
+  - PROCESS-NAME,Battle.net.exe
+  - PROCESS-NAME,BlizzardBrowser.exe
 
   # --- Riot Games ---
-  - PROCESS-NAME,LeagueClient.exe,DIRECT
-  - PROCESS-NAME,RiotClientServices.exe,DIRECT
+  - PROCESS-NAME,LeagueClient.exe
+  - PROCESS-NAME,RiotClientServices.exe
 
   # --- Rockstar Games / Social Club ---
-  - PROCESS-NAME-REGEX,(?i).*Rockstar.*,DIRECT
-  - PROCESS-NAME-REGEX,(?i).*SocialClub.*,DIRECT
+  - PROCESS-NAME-REGEX,(?i).*Rockstar.*
+  - PROCESS-NAME-REGEX,(?i).*SocialClub.*
 
   # --- VK Play / MY.GAMES ---
-  - PROCESS-NAME,GameCenter.exe,DIRECT
-  - PROCESS-NAME,VKPlayLoader.exe,DIRECT
-  - PROCESS-NAME,mycomgames.exe,DIRECT
-  - DOMAIN-SUFFIX,vkplay.ru,DIRECT
-  - DOMAIN-SUFFIX,my.games,DIRECT
+  - PROCESS-NAME,GameCenter.exe
+  - PROCESS-NAME,VKPlayLoader.exe
+  - PROCESS-NAME,mycomgames.exe
+  - DOMAIN-SUFFIX,vkplay.ru
+  - DOMAIN-SUFFIX,my.games
 
   # --- HoYoverse (лаунчер / обновления) ---
-  - PROCESS-NAME,HYUpdater.exe,DIRECT
-  - PROCESS-NAME,HYP.exe,DIRECT
-  - PROCESS-NAME,HYPHelper.exe,DIRECT
+  - PROCESS-NAME,HYUpdater.exe
+  - PROCESS-NAME,HYP.exe
+  - PROCESS-NAME,HYPHelper.exe
 
   # --- Xbox (Microsoft Store / PC Game Pass) ---
-  - PROCESS-NAME,XboxApp.exe,DIRECT
-  - PROCESS-NAME,XboxPcApp.exe,DIRECT
+  - PROCESS-NAME,XboxApp.exe
+  - PROCESS-NAME,XboxPcApp.exe
 
   # --- Bethesda ---
-  - PROCESS-NAME,BethesdaNetLauncher.exe,DIRECT
+  - PROCESS-NAME,BethesdaNetLauncher.exe
 
   # --- Прочие лаунчеры (отдельные игры / платформы) ---
-  - PROCESS-NAME,ApexLauncher.exe,DIRECT
-  - PROCESS-NAME,ExecPubg.exe,DIRECT
-  - PROCESS-NAME,BsgLauncher.exe,DIRECT
-  - PROCESS-NAME,MarvelRivals_Launcher.exe,DIRECT
-  - PROCESS-NAME,WoWSLauncher.exe,DIRECT
-  - PROCESS-NAME,battalionlauncher.exe,DIRECT
-  - PROCESS-NAME,steamlauncher.exe,DIRECT
-  - PROCESS-NAME,launcher.exe,DIRECT
-  - PROCESS-NAME,slauncher.exe,DIRECT
-  - PROCESS-NAME,dundeflauncher.exe,DIRECT
+  - PROCESS-NAME,ApexLauncher.exe
+  - PROCESS-NAME,ExecPubg.exe
+  - PROCESS-NAME,BsgLauncher.exe
+  - PROCESS-NAME,MarvelRivals_Launcher.exe
+  - PROCESS-NAME,WoWSLauncher.exe
+  - PROCESS-NAME,battalionlauncher.exe
+  - PROCESS-NAME,steamlauncher.exe
+  - PROCESS-NAME,launcher.exe
+  - PROCESS-NAME,slauncher.exe
+  - PROCESS-NAME,dundeflauncher.exe
 
   # =========================================================
   # macOS — имена бинарников внутри .app
   # =========================================================
 
   # --- Steam ---
-  - PROCESS-NAME,steam_osx,DIRECT
-  - PROCESS-NAME,steamwebhelper,DIRECT
+  - PROCESS-NAME,steam_osx
+  - PROCESS-NAME,steamwebhelper
 
   # --- Epic Games ---
-  - PROCESS-NAME,EpicGamesLauncher,DIRECT
-  - PROCESS-NAME,EpicWebHelper,DIRECT
+  - PROCESS-NAME,EpicGamesLauncher
+  - PROCESS-NAME,EpicWebHelper
 
   # --- EA / Origin ---
-  - PROCESS-NAME,EADesktop,DIRECT
-  - PROCESS-NAME,Origin,DIRECT
+  - PROCESS-NAME,EADesktop
+  - PROCESS-NAME,Origin
 
   # --- GOG Galaxy ---
-  - PROCESS-NAME,GOG Galaxy,DIRECT
+  - PROCESS-NAME,GOG Galaxy
 
   # --- Blizzard / Battle.net ---
-  - PROCESS-NAME,Battle.net,DIRECT
-  - PROCESS-NAME,Battle.net Helper,DIRECT
+  - PROCESS-NAME,Battle.net
+  - PROCESS-NAME,Battle.net Helper
 
   # --- Riot Games ---
-  - PROCESS-NAME,LeagueClient,DIRECT
-  - PROCESS-NAME,RiotClientServices,DIRECT
+  - PROCESS-NAME,LeagueClient
+  - PROCESS-NAME,RiotClientServices
 
   # --- Heroic (Epic/GOG/Amazon, кроссплатформенный) ---
-  - PROCESS-NAME,Heroic,DIRECT
+  - PROCESS-NAME,Heroic
 
   # =========================================================
   # Linux — имена бинарников
   # =========================================================
 
   # --- Steam ---
-  - PROCESS-NAME,steam,DIRECT
-  - PROCESS-NAME,steam.sh,DIRECT
+  - PROCESS-NAME,steam
+  - PROCESS-NAME,steam.sh
 
   # --- Менеджеры/лаунчеры игр ---
-  - PROCESS-NAME,lutris,DIRECT
-  - PROCESS-NAME,heroic,DIRECT
-  - PROCESS-NAME,bottles,DIRECT
-  - PROCESS-NAME,minigalaxy,DIRECT
-  - PROCESS-NAME,legendary,DIRECT          # Epic (CLI)
-  - PROCESS-NAME,rare,DIRECT               # Epic (GUI к legendary)
-  - PROCESS-NAME,nile,DIRECT               # Amazon Games (CLI)
-  - PROCESS-NAME,gogdl,DIRECT              # GOG downloader (backend Heroic)
-  - PROCESS-NAME,comet,DIRECT              # GOG Galaxy comms (backend Heroic)
-  - PROCESS-NAME,cartridges,DIRECT         # агрегатор библиотек (Steam/Heroic/itch…)
-  - PROCESS-NAME,itch,DIRECT               # itch.io app
-  - PROCESS-NAME,gamehub,DIRECT            # GameHub
+  - PROCESS-NAME,lutris
+  - PROCESS-NAME,heroic
+  - PROCESS-NAME,bottles
+  - PROCESS-NAME,minigalaxy
+  - PROCESS-NAME,legendary          # Epic (CLI)
+  - PROCESS-NAME,rare               # Epic (GUI к legendary)
+  - PROCESS-NAME,nile               # Amazon Games (CLI)
+  - PROCESS-NAME,gogdl              # GOG downloader (backend Heroic)
+  - PROCESS-NAME,comet              # GOG Galaxy comms (backend Heroic)
+  - PROCESS-NAME,cartridges         # агрегатор библиотек (Steam/Heroic/itch…)
+  - PROCESS-NAME,itch               # itch.io app
+  - PROCESS-NAME,gamehub            # GameHub
 
   # --- Faugus Launcher (запуск Windows-игр через UMU/Proton) ---
-  - PROCESS-NAME,faugus-launcher,DIRECT
-  - PROCESS-NAME,faugus-run,DIRECT
-  - PROCESS-NAME,faugus-proton-manager,DIRECT   # менеджер версий Proton (загрузки)
+  - PROCESS-NAME,faugus-launcher
+  - PROCESS-NAME,faugus-run
+  - PROCESS-NAME,faugus-proton-manager   # менеджер версий Proton (загрузки)
 
   # --- UMU Launcher (общий runtime для Faugus / Lutris / Heroic) ---
-  - PROCESS-NAME,umu-run,DIRECT
+  - PROCESS-NAME,umu-run

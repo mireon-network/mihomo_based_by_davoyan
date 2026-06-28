@@ -21,15 +21,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install mihomo
-        run: |
-          M_VER=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest | \
-                  grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
-          echo "Latest mihomo version: $M_VER"
-          wget -O mihomo.gz https://github.com/MetaCubeX/mihomo/releases/download/v${M_VER}/mihomo-linux-amd64-v${M_VER}.gz
-          gunzip -f mihomo.gz
-          chmod +x mihomo
-          sudo mv mihomo /usr/local/bin/
-          mihomo -v
+        uses: ./.github/actions/setup-mihomo
 
       - name: Mirror external sources and build .mrs
         run: |
@@ -41,7 +33,7 @@ jobs:
           git config user.name "mihomo-rule-sets bot"
           git config user.email "noreply@github.com"
 
-          git add rules/metacubex rules/legiz-ru rules/itdoginfo rules/roscomvpn rules/domains/category-ru-legacy.txt
+          git add rules/metacubex rules/legiz-ru rules/itdoginfo rules/roscomvpn rules/davoyan rules/domains/category-ru-legacy.txt
 
           if git diff --cached --quiet; then
             echo "No changes"

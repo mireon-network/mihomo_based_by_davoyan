@@ -3,7 +3,9 @@ name: Build RU domains lists
 on:
   workflow_dispatch:
   schedule:
-    - cron: '20 1 * * *'
+    # После mirror-external (40 1), который обновляет category-ru-legacy.txt —
+    # источник для category-ru.py. Иначе RU-домены собирались бы на вчерашнем legacy.
+    - cron: '5 2 * * *'
 
 jobs:
   build:
@@ -32,15 +34,7 @@ jobs:
           python scripts/category-ru.py
 
       - name: Install mihomo
-        run: |
-          M_VER=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest | \
-                  grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
-          echo "Latest mihomo version: $M_VER"
-          wget -O mihomo.gz https://github.com/MetaCubeX/mihomo/releases/download/v${M_VER}/mihomo-linux-amd64-v${M_VER}.gz
-          gunzip -f mihomo.gz
-          chmod +x mihomo
-          sudo mv mihomo /usr/local/bin/
-          mihomo -v
+        uses: ./.github/actions/setup-mihomo
 
       - name: Convert .yaml to .mrs
         run: |

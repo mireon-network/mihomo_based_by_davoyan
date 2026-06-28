@@ -123,7 +123,6 @@ dns:
     - "time3.google.com"
     - "time4.google.com"
     - "*.msftconnecttest.com"
-    - "*.msftncsi.com"
     - "+.xboxlive.com"
     - "*.*.stun.playstation.net"
     - "xbox.*.*.microsoft.com"
@@ -666,7 +665,6 @@ rule-providers:
       - DOMAIN-SUFFIX,habr.com
       - DOMAIN-SUFFIX,seasonvar.ru
       - DOMAIN-SUFFIX,lib.social
-      - DOMAIN-SUFFIX,kemono.su
       - DOMAIN-SUFFIX,jut.su
       - DOMAIN-SUFFIX,kara.su
       - DOMAIN-SUFFIX,theins.ru
@@ -799,7 +797,7 @@ rules:
   - RULE-SET,google-deepmind,🤖 ИИ # Google Gemini и AI Studio
 
   # 🎮 Игры / 🎮 Лаунчеры / 🍷 Wine
-  - RULE-SET,games-proxy-rules,🎮 Игры # игровые сервисы, которым нужен прокси
+  - RULE-SET,games-proxy-rules,PROXY # игровые сервисы, которым нужен VPN (всегда через прокси)
   - RULE-SET,games-launchers,🎮 Лаунчеры # лаунчеры (по умолчанию DIRECT, можно переключить)
   - RULE-SET,epicgames,🎮 Игры
   - RULE-SET,origin,🎮 Игры

@@ -38,7 +38,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 MIHOMO_VERSION = os.environ.get("MIHOMO_VERSION", "latest")
 
 # Фолбэк, если GitHub API недоступен при разрешении "latest".
-MIHOMO_VERSION_FALLBACK = "v1.19.25"
+# Держим синхронно с scripts/build-all.py.
+MIHOMO_VERSION_FALLBACK = "v1.19.27"
 
 # Sets that produce a .mrs. Each entry:
 #   mrs          — destination .mrs (relative to repo root); referenced by the template

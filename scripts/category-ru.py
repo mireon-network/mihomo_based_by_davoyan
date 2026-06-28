@@ -1,6 +1,8 @@
-import requests
 import sys
+import time
 from pathlib import Path
+
+import requests
 
 
 def remove_overlaps(domains: set[str]) -> list[str]:
@@ -38,6 +40,28 @@ def transform_keyword(line: str) -> str | None:
         s = s[:-1] + ".*"
 
     return "+." + s
+
+
+def fetch_text(url: str, attempts: int = 3, timeout: int = 15) -> str:
+    """Скачать текст с ретраями. Лечит кратковременные сбои сети/апстрима.
+
+    Бросает последнее исключение, если все попытки провалились — вызывающий
+    решает, фатально это или нет.
+    """
+    last_err: Exception | None = None
+    for attempt in range(1, attempts + 1):
+        try:
+            resp = requests.get(url, timeout=timeout)
+            resp.raise_for_status()
+            return resp.text
+        except Exception as e:  # noqa: BLE001 - ретраим любую сетевую ошибку
+            last_err = e
+            if attempt < attempts:
+                delay = 2 ** attempt  # 2с, 4с, ...
+                print(f"  попытка {attempt}/{attempts} не удалась ({e}); жду {delay}с")
+                time.sleep(delay)
+    assert last_err is not None
+    raise last_err
 
 
 def add_domains_from_text(text: str, ru_domains: set[str]) -> None:
@@ -108,17 +132,25 @@ def main():
         "yandex.com.ge", "yandex.com.am", "yandex.co.il", "yandex-images.clstorage.net",
     ])
 
+    failures: list[str] = []
     for url in ru_urls:
         print("Скачиваю:", url)
         try:
-            resp = requests.get(url, timeout=10)
-            resp.raise_for_status()
-        except Exception as e:
-            print(f"\n❌ Ошибка при скачивании {url}: {e}")
-            sys.exit(1)
-            return
+            text = fetch_text(url)
+        except Exception as e:  # noqa: BLE001 - копим и продолжаем
+            print(f"  ❌ источник недоступен после ретраев: {e}")
+            failures.append(url)
+            continue
 
-        add_domains_from_text(resp.text, ru_domains)
+        add_domains_from_text(text, ru_domains)
+
+    # Источник упал окончательно (а не моргнул) → НЕ перезаписываем закоммиченный
+    # список усечённым: выходим с ошибкой, CI сохранит вчерашнюю версию файла.
+    if failures:
+        print(f"\n❌ Недоступно источников: {len(failures)} — список не перегенерирован:")
+        for u in failures:
+            print(f"  - {u}")
+        sys.exit(1)
 
     # legacy-список читаем локально из репозитория (зеркалится из апстрима Davoyan
     # через scripts/mirror-external.py -> rules/domains/category-ru-legacy.txt)
