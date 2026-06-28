@@ -170,7 +170,7 @@ rules:
   - RULE-SET,geosite-private,DIRECT                # локальные домены — напрямую
 
   # --- Блокировка рекламы и телеметрии Windows (опционально) ---
-  - RULE-SET,oisd_big,REJECT       # Списки скомпилированные Legiz
+  - RULE-SET,oisd_big,DIRECT       # Списки скомпилированные Legiz
   - RULE-SET,win-spy,REJECT-DROP   # Телеметрия Windows
 
   # --- Торренты → напрямую (DIRECT, опционально) ---
