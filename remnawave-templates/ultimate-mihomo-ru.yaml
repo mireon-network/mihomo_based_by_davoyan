@@ -757,8 +757,13 @@ rules:
   #- PROCESS-NAME-REGEX,(?i).*teamviewer.*,DIRECT
   #- RULE-SET,remote-control,DIRECT
 
+  # Наш сервис termix.https443.net попал в oisd-блоклист (+.https443.net).
+  # Явное исключение ВЫШЕ oisd_big, иначе TCP режется (DNS-исключение — в
+  # dns.nameserver-policy). PROXY — для аффинити с резолвом через #PROXY.
+  - DOMAIN-SUFFIX,termix.https443.net,PROXY
+
   # Блокировка рекламы и телеметрии Windows (опционально)
-  - RULE-SET,oisd_big,REJECT # Списки скомпилированные Legiz
+  - RULE-SET,oisd_big,DIRECT # Списки скомпилированные Legiz
   - RULE-SET,win-spy,REJECT-DROP # Телеметрия Windows
 
   # Отправляем торренты в DIRECT (опционально)
